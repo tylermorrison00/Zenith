@@ -1,0 +1,25 @@
+:root {
+  color-scheme: dark;
+  font-family: 'DM Sans', sans-serif;
+  --bg: #040303;
+  --surface: #111010;
+  --surface-raised: #161515;
+  --surface-soft: #1c1b1a;
+  --surface-strong: #252321;
+  --border: rgba(226, 217, 208, 0.1);
+  --border-strong: rgba(226, 217, 208, 0.17);
+  --text: #E2D9D0;
+  --muted: #717171;
+  --dim: #555452;
+  --amber: #D69B51;
+  --burnt: #AF5E1B;
+  --brown: #5C2A0D;
+  --slate: #627C7B;
+  --amber-soft: rgba(214, 155, 81, 0.15);
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', Inter, sans-serif;
+}
