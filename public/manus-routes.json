@@ -1,0 +1,9 @@
+{
+  "routes": [
+    { "path": "/", "title": "Zenith Overview" },
+    { "path": "/focus", "title": "Focus" },
+    { "path": "/projects", "title": "Projects" },
+    { "path": "/projects/brand-refresh", "title": "Brand Refresh" },
+    { "path": "/review", "title": "Weekly Review" }
+  ]
+}
