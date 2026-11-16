@@ -1,6 +1,6 @@
 # Zenith
 
-A browser-only productivity dashboard inspired by the Ordo creative-workspace reference. It includes Overview, Focus, Projects, Brand Refresh detail, and Review routes, with seeded demo data and working local interactions.
+A browser-only productivity dashboard inspired by the Zenith creative-workspace reference. It includes Overview, Focus, Projects, Brand Refresh detail, and Review routes, with seeded demo data and working local interactions.
 
 ## Run locally
 
