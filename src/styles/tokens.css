@@ -16,10 +16,192 @@
   --brown: #5C2A0D;
   --slate: #627C7B;
   --amber-soft: rgba(214, 155, 81, 0.15);
+  /* Accent components — every orange/amber surface in app.css is built from
+     these, so the green theme only has to redefine this block. */
+  --amber-rgb: 214, 155, 81;
+  --burnt-rgb: 175, 94, 27;
+  --brown-rgb: 92, 42, 13;
+  --accent-hi: #EFC573;
+  --accent-hi-rgb: 244, 200, 128;
+  --accent-pale-rgb: 255, 221, 164;
+  --accent-glint-rgb: 255, 244, 228;
+  --accent-glint: #FFF5E6;
+  --accent-paper: #FFF7E9;
+  --accent-lo: #BD792C;
+  --accent-deep: #85501D;
+  --accent-cap: #9D682C;
+  --accent-mid: #D9A34E;
+  --accent-mid-rgb: 124, 81, 35;
+  --accent-dark-rgb: 47, 33, 20;
+  --accent-ink: #26170A;
+  --accent-text: #E7BB7B;
+  --accent-warn: #EDA668;
+  --bubble-hi: #57402A;
+  --bubble-lo: #33241A;
+  --bubble2-hi: #4A2C14;
+  --bubble2-lo: #2B1A0C;
+  --art-hi: #30271B;
+  --art-lo: #171513;
+  --orbit-hi: #2B2320;
+  --orbit-lo: #17130F;
+  --insight-hi: #5C391D;
+  --insight-lo: #704011;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
   --radius-lg: 20px;
   --radius-md: 14px;
   --radius-sm: 10px;
   --serif: 'Instrument Serif', Georgia, serif;
   --sans: 'DM Sans', Inter, sans-serif;
+}
+
+/* Green theme — the Habitly green the user approved for the Zenith logo
+   (sampled from the approved green logo: primary #22E33E). Activated by the
+   Theme color button in the profile dropdown; persisted on the device. */
+:root[data-theme='green'] {
+  --amber: #22E33E;
+  --burnt: #0DA82E;
+  --brown: #064E18;
+  --amber-soft: rgba(34, 227, 62, 0.15);
+  --amber-rgb: 34, 227, 62;
+  --burnt-rgb: 13, 168, 46;
+  --brown-rgb: 6, 78, 24;
+  --accent-hi: #7CF28C;
+  --accent-hi-rgb: 124, 242, 140;
+  --accent-pale-rgb: 190, 255, 200;
+  --accent-glint-rgb: 225, 255, 230;
+  --accent-glint: #E9FFEC;
+  --accent-paper: #EDFFEF;
+  --accent-lo: #17B93A;
+  --accent-deep: #0B7A24;
+  --accent-cap: #12A832;
+  --accent-mid: #3ED957;
+  --accent-mid-rgb: 18, 140, 44;
+  --accent-dark-rgb: 8, 46, 18;
+  --accent-ink: #04170A;
+  --accent-text: #8FF09C;
+  --accent-warn: #7CF28C;
+  --bubble-hi: #1E4A24;
+  --bubble-lo: #11270F;
+  --bubble2-hi: #173D1C;
+  --bubble2-lo: #0C2110;
+  --art-hi: #152A1B;
+  --art-lo: #0F1710;
+  --orbit-hi: #1B2B20;
+  --orbit-lo: #10160F;
+  --insight-hi: #0B4A1A;
+  --insight-lo: #073D14;
+}
+
+/* Yellow theme — the yellow the user approved for the Zenith logo (sampled
+   from the approved yellow logo: primary #E3C021), added alongside amber and
+   green; the Theme color button cycles through all three. */
+:root[data-theme='yellow'] {
+  --amber: #E3C021;
+  --burnt: #B08D0A;
+  --brown: #4E3F06;
+  --amber-soft: rgba(227, 192, 33, 0.15);
+  --amber-rgb: 227, 192, 33;
+  --burnt-rgb: 176, 141, 10;
+  --brown-rgb: 78, 63, 6;
+  --accent-hi: #F5DC6B;
+  --accent-hi-rgb: 245, 220, 107;
+  --accent-pale-rgb: 255, 240, 170;
+  --accent-glint-rgb: 255, 250, 220;
+  --accent-glint: #FFFBEA;
+  --accent-paper: #FFFBEB;
+  --accent-lo: #C9A227;
+  --accent-deep: #8A6D0B;
+  --accent-cap: #A8860B;
+  --accent-mid: #E8C93A;
+  --accent-mid-rgb: 140, 110, 18;
+  --accent-dark-rgb: 46, 38, 8;
+  --accent-ink: #241C04;
+  --accent-text: #F0D060;
+  --accent-warn: #F5DC6B;
+  --bubble-hi: #4A3F1E;
+  --bubble-lo: #2A2410;
+  --bubble2-hi: #3D320F;
+  --bubble2-lo: #211A08;
+  --art-hi: #2A2515;
+  --art-lo: #171510;
+  --orbit-hi: #2B2618;
+  --orbit-lo: #16130C;
+  --insight-hi: #5C4A0D;
+  --insight-lo: #6E5708;
+}
+
+/* Blue theme — the Pedometer blue the user approved for the Zenith logo
+   (sampled from the approved blue logo: primary #216AE2), added alongside
+   amber, green and yellow; the Theme color button cycles through all four. */
+:root[data-theme='blue'] {
+  --amber: #216AE2;
+  --burnt: #0D55C4;
+  --brown: #06305F;
+  --amber-soft: rgba(33, 106, 226, 0.15);
+  --amber-rgb: 33, 106, 226;
+  --burnt-rgb: 13, 85, 196;
+  --brown-rgb: 6, 48, 95;
+  --accent-hi: #7FB0F5;
+  --accent-hi-rgb: 127, 176, 245;
+  --accent-pale-rgb: 190, 215, 255;
+  --accent-glint-rgb: 225, 238, 255;
+  --accent-glint: #EAF2FF;
+  --accent-paper: #EDF4FF;
+  --accent-lo: #1B5FD0;
+  --accent-deep: #0B4396;
+  --accent-cap: #1255B4;
+  --accent-mid: #4A8FE8;
+  --accent-mid-rgb: 20, 80, 160;
+  --accent-dark-rgb: 8, 28, 54;
+  --accent-ink: #04122B;
+  --accent-text: #8FB8F5;
+  --accent-warn: #7FB0F5;
+  --bubble-hi: #1E3350;
+  --bubble-lo: #101C2C;
+  --bubble2-hi: #172C47;
+  --bubble2-lo: #0C1826;
+  --art-hi: #15222F;
+  --art-lo: #0F1417;
+  --orbit-hi: #1B2530;
+  --orbit-lo: #101418;
+  --insight-hi: #0D3560;
+  --insight-lo: #082A4E;
+}
+
+/* Purple theme — the purple the user approved for the Zenith logo (sampled
+   from the approved purple logo: primary #8521E2), added alongside amber,
+   green, yellow and blue; the Theme color button cycles through all five. */
+:root[data-theme='purple'] {
+  --amber: #8521E2;
+  --burnt: #6A0DB8;
+  --brown: #2E0652;
+  --amber-soft: rgba(133, 33, 226, 0.15);
+  --amber-rgb: 133, 33, 226;
+  --burnt-rgb: 106, 13, 184;
+  --brown-rgb: 46, 6, 82;
+  --accent-hi: #B87FF5;
+  --accent-hi-rgb: 184, 127, 245;
+  --accent-pale-rgb: 220, 190, 255;
+  --accent-glint-rgb: 240, 225, 255;
+  --accent-glint: #F5EAFF;
+  --accent-paper: #F7EDFF;
+  --accent-lo: #7A1BD0;
+  --accent-deep: #520B96;
+  --accent-cap: #6512B4;
+  --accent-mid: #9E4AE8;
+  --accent-mid-rgb: 80, 20, 160;
+  --accent-dark-rgb: 28, 8, 54;
+  --accent-ink: #17042B;
+  --accent-text: #BC8FF5;
+  --accent-warn: #B87FF5;
+  --bubble-hi: #3B1E50;
+  --bubble-lo: #20102C;
+  --bubble2-hi: #301747;
+  --bubble2-lo: #190C26;
+  --art-hi: #24152F;
+  --art-lo: #130F17;
+  --orbit-hi: #261B30;
+  --orbit-lo: #141018;
+  --insight-hi: #360D60;
+  --insight-lo: #2A084E;
 }
