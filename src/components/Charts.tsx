@@ -28,7 +28,7 @@ export function FocusVolumeChart({ mode, period }: { mode: 'Deep' | 'Shallow'; p
   return (
     <div className="focus-volume-chart">
       <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${mode} focus volume over ${period.replace('D', '')} days`} preserveAspectRatio="none">
-        <defs><linearGradient id="amberGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e3ba70" /><stop offset="100%" stopColor="#a86524" /></linearGradient></defs>
+        <defs><linearGradient id="amberGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style={{ stopColor: 'var(--accent-hi)' }} /><stop offset="100%" style={{ stopColor: 'var(--accent-cap)' }} /></linearGradient></defs>
         {[0, 1, 2, 3].map((tick) => {
           const y = bottom - (tick / max) * 124;
           return <g key={tick}><line x1="0" y1={y} x2={chartWidth} y2={y} className="chart-gridline" /><text x="0" y={y - 5} className="chart-axis-label">{tick}{mode === 'Deep' ? 'h' : 'h'}</text></g>;
@@ -47,7 +47,7 @@ export function FocusVolumeChart({ mode, period }: { mode: 'Deep' | 'Shallow'; p
         })}
       </svg>
       <div className="chart-average-tag">Avg {average.toFixed(1)}h</div>
-      <div className="chart-today-tag">Today · {values[values.length - 1].toFixed(2)}h {mode.toLowerCase()}</div>
+      <div className="chart-today-tag">Today · {(values[values.length - 1] ?? 0).toFixed(2)}h {mode.toLowerCase()}</div>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export function FlowGauge({ score = 86 }: { score?: number }) {
   return (
     <div className="flow-gauge">
       <svg viewBox="0 0 320 190" role="img" aria-label={`Flow score ${score} out of 100`}>
-        <defs><linearGradient id="gaugeGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#ad6c27" /><stop offset="100%" stopColor="#e6bc73" /></linearGradient></defs>
+        <defs><linearGradient id="gaugeGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" style={{ stopColor: 'var(--accent-cap)' }} /><stop offset="100%" style={{ stopColor: 'var(--accent-hi)' }} /></linearGradient></defs>
         <path d="M30 165 A130 130 0 0 1 290 165" className="gauge-track gauge-track--outer" />
         <path d="M49 165 A111 111 0 0 1 271 165" className="gauge-track gauge-track--middle" />
         <path d="M68 165 A92 92 0 0 1 252 165" className="gauge-track gauge-track--inner" />

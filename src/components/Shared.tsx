@@ -1,14 +1,43 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Check, ChevronDown, CircleHelp, Command, FileText, Folder, LayoutDashboard, Search, Sparkles, Timer, UserRound, X, Zap } from 'lucide-react';
+import { Bell, Check, ChevronDown, CircleHelp, Command, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Timer, UserRound, X, Zap } from 'lucide-react';
 import { useDashboard } from '../state/DashboardContext';
+import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
+import { isFirebaseConfigured } from '../lib/firebase';
+import { nextTheme, themeLogo, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
-export function Header() {
+export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOut?: () => void; theme?: ThemeName; onToggleTheme?: () => void }) {
   const { startTimer, notify } = useDashboard();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  // Profile comes from auth.ts so it shows the signed-in user in BOTH
+  // Firebase mode and local mode (the old readAccount() call only ever saw
+  // the local store, which Firebase sign-in never writes). Seeded
+  // synchronously so a signed-in user never flashes the placeholder: local
+  // mode reads localStorage directly, and Firebase mode reads the already
+  // restored Firebase user when one is available. `undefined` means "still
+  // loading" (Firebase mode, session not restored yet); `null` means nobody
+  // is signed in.
+  const [account, setAccount] = useState<Account | null | undefined>(() => {
+    const sync = getCurrentAccountSync();
+    if (sync) return sync;
+    return isFirebaseConfigured() ? undefined : null;
+  });
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentAccount().then((current) => {
+      if (!cancelled) setAccount(current);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const profileName = account?.name ?? 'Mia Chen';
+  const profileEmail = account?.email ?? 'Studio workspace';
+  const profileInitial = profileName.trim().charAt(0).toUpperCase() || 'M';
   const active = location.pathname.startsWith('/focus') ? '/focus'
     : location.pathname.startsWith('/projects') ? '/projects'
       : location.pathname.startsWith('/review') ? '/review' : '/';
@@ -23,7 +52,7 @@ export function Header() {
   return (
     <header className="topbar">
       <Link className="brand-lockup" to="/" aria-label="Zenith Studio workspace home">
-        <img src="/zenith-mark.svg" alt="" className="brand-mark" />
+        <img src={themeLogo(theme)} alt="" className="brand-mark" />
         <span className="brand-name">Zenith</span>
         <span className="brand-divider">/</span>
         <span className="workspace-name">Studio workspace</span>
@@ -46,15 +75,37 @@ export function Header() {
         </button>
         <div className="profile-wrap">
           <button className="avatar-button" aria-label="Open workspace profile" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
-            <span className="avatar-initial">M</span>
+            <span className="avatar-initial">{profileInitial}</span>
             <ChevronDown size={12} />
           </button>
           {profileOpen && (
             <div className="profile-popover">
-              <div className="profile-person"><span className="avatar-large">M</span><div><strong>Mia Chen</strong><small>Studio workspace</small></div></div>
+              <div className="profile-person"><span className="avatar-large">{profileInitial}</span><div><strong>{profileName}</strong><small>{profileEmail}</small></div></div>
               <div className="profile-streak"><Zap size={14} /><span>6 day focus streak</span><b>6</b></div>
               <button onClick={() => { setProfileOpen(false); navigate('/'); document.getElementById('habit-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><UserRound size={14} /> Open daily rituals</button>
+              <button onClick={() => { setProfileOpen(false); onToggleTheme?.(); const next = nextTheme(theme); notify(`${next.charAt(0).toUpperCase()}${next.slice(1)} theme on`); }}><Palette size={14} /> Theme color</button>
+              <button disabled={checkingUpdate} onClick={async () => {
+                setCheckingUpdate(true);
+                notify('Checking for updates…');
+                try {
+                  if (window.zenith) {
+                    const result = await window.zenith.doUpdate();
+                    notify(result.message || (result.updated ? 'Update installed — restarting…' : "You're on the latest version"));
+                    if (result.updated) setProfileOpen(false);
+                  } else {
+                    // Browser / dev server: no desktop bridge, so there is
+                    // nothing real to check — keep the old placeholder answer.
+                    window.setTimeout(() => { notify("You're on the latest version"); }, 1600);
+                    return;
+                  }
+                } catch {
+                  notify('Could not check for updates — try again later');
+                } finally {
+                  setCheckingUpdate(false);
+                }
+              }}><Download size={14} /> {checkingUpdate ? 'Checking for updates…' : 'Update app'}</button>
               <button onClick={() => { setProfileOpen(false); notify('Workspace help is ready when you need it'); }}><CircleHelp size={14} /> Workspace help</button>
+              {onSignOut && <button onClick={() => { setProfileOpen(false); onSignOut(); }}><LogOut size={14} /> Sign out</button>}
             </div>
           )}
         </div>
