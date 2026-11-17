@@ -12,8 +12,9 @@ import { ProjectsPage, BrandRefreshPage } from './pages/Projects';
 import { ReviewPage } from './pages/Review';
 import { OnboardingPage } from './pages/Onboarding';
 import { hasSession } from './lib/account';
-import { signOut as signOutOfAuth } from './lib/auth';
-import { applyTheme, nextTheme, readTheme, type ThemeName } from './lib/theme';
+import { isFirebaseConfigured } from './lib/firebase';
+import { signOut as signOutOfAuth, waitForAuthRestore } from './lib/auth';
+import { applyTheme, nextTheme, readTheme, themeLogo, type ThemeName } from './lib/theme';
 
 function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; theme: ThemeName; onToggleTheme: () => void }) {
   return (
@@ -38,14 +39,38 @@ function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; 
 }
 
 export function App() {
-  // First open shows the Zenith onboarding screen (welcome → create account /
-  // log in). Once an account session exists on this device, the app opens
-  // straight into the workspace; signing out returns to onboarding.
-  const [signedIn, setSignedIn] = useState<boolean>(() => hasSession());
+  // Auth gate — THREE states, never two. The old code read only the
+  // localStorage flag `zenith-session-v1` on first render, which Firebase
+  // sign-in never set, so the app showed the login screen on EVERY restart
+  // and forced the user to log in again and again (v1.0.3 fix).
+  //   'loading'    — Firebase Auth is still restoring the saved session
+  //                   (onAuthStateChanged); show a splash, NEVER onboarding
+  //                   on this half-restored state.
+  //   'signed-in'  — session restored (or local session exists).
+  //   'signed-out' — no session; only then show onboarding.
+  // Sign-out is the ONLY way back to onboarding — closing and reopening
+  // the app, or updating it, keeps the user signed in.
+  const [authState, setAuthState] = useState<'loading' | 'signed-in' | 'signed-out'>(() =>
+    isFirebaseConfigured() ? 'loading' : hasSession() ? 'signed-in' : 'signed-out',
+  );
   // Accent theme (amber / green / yellow / blue / purple) chosen from the profile
   // dropdown's Theme color button, which cycles through all five; persisted on this
   // device and applied to the whole app, onboarding included.
   const [theme, setTheme] = useState<ThemeName>(() => readTheme());
+
+  useEffect(() => {
+    let cancelled = false;
+    if (isFirebaseConfigured()) {
+      waitForAuthRestore().then((account) => {
+        if (!cancelled) setAuthState(account ? 'signed-in' : 'signed-out');
+      }).catch(() => {
+        if (!cancelled) setAuthState('signed-out');
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
@@ -59,7 +84,7 @@ export function App() {
     try {
       await signOutOfAuth();
     } finally {
-      setSignedIn(false);
+      setAuthState('signed-out');
     }
   }
 
@@ -67,11 +92,16 @@ export function App() {
     <DashboardProvider>
       <HashRouter>
         <TitleBar theme={theme} />
-        {signedIn ? (
+        {authState === 'loading' ? (
+          <div className="auth-loading" aria-label="Loading Zenith">
+            <img src={themeLogo(theme)} alt="Zenith" />
+            <p>Loading your workspace…</p>
+          </div>
+        ) : authState === 'signed-in' ? (
           <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} />
         ) : (
           <>
-            <OnboardingPage onComplete={() => setSignedIn(true)} theme={theme} />
+            <OnboardingPage onComplete={() => setAuthState('signed-in')} theme={theme} />
             <Toast />
           </>
         )}
