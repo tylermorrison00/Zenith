@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { DashboardProvider } from './state/DashboardContext';
 import { Header, Toast } from './components/Shared';
+import { TitleBar } from './components/TitleBar';
 import { OverviewPage } from './pages/Overview';
 import { FocusPage } from './pages/Focus';
 import { ProjectsPage, BrandRefreshPage } from './pages/Projects';
@@ -59,6 +60,7 @@ export function App() {
   return (
     <DashboardProvider>
       <HashRouter>
+        <TitleBar theme={theme} />
         {signedIn ? (
           <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} />
         ) : (
