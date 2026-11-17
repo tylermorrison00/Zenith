@@ -5,6 +5,7 @@ import { ListChecks } from '../lib/icons';
 import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
 import { isFirebaseConfigured } from '../lib/firebase';
+import { UpdateModal } from './UpdateModal';
 import { nextTheme, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
@@ -13,7 +14,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   // Profile comes from auth.ts so it shows the signed-in user in BOTH
   // Firebase mode and local mode (the old readAccount() call only ever saw
   // the local store, which Firebase sign-in never writes). Seeded
@@ -57,6 +58,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   ];
 
   return (
+    <>
     <header className="topbar">
       <nav className="main-nav" aria-label="Main navigation">
         {nav.map(({ to, label, icon: Icon }) => (
@@ -85,26 +87,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
               <div className="profile-streak"><Zap size={14} /><span>{timer.sessions === 0 ? 'No focus streak yet' : `${timer.sessions} day focus streak`}</span>{timer.sessions > 0 && <b>{timer.sessions}</b>}</div>
               <button onClick={() => { setProfileOpen(false); navigate('/'); document.getElementById('habit-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><UserRound size={14} /> Open daily rituals</button>
               <button onClick={() => { setProfileOpen(false); onToggleTheme?.(); const next = nextTheme(theme); notify(`${next.charAt(0).toUpperCase()}${next.slice(1)} theme on`); }}><Palette size={14} /> Theme color</button>
-              <button disabled={checkingUpdate} onClick={async () => {
-                setCheckingUpdate(true);
-                notify('Checking for updates…');
-                try {
-                  if (window.zenith) {
-                    const result = await window.zenith.doUpdate();
-                    notify(result.message || (result.updated ? 'Update installed — restarting…' : "You're on the latest version"));
-                    if (result.updated) setProfileOpen(false);
-                  } else {
-                    // Browser / dev server: no desktop bridge, so there is
-                    // nothing real to check — keep the old placeholder answer.
-                    window.setTimeout(() => { notify("You're on the latest version"); }, 1600);
-                    return;
-                  }
-                } catch {
-                  notify('Could not check for updates — try again later');
-                } finally {
-                  setCheckingUpdate(false);
-                }
-              }}><Download size={14} /> {checkingUpdate ? 'Checking for updates…' : 'Update app'}</button>
+              <button onClick={() => { setProfileOpen(false); setUpdateOpen(true); }}><Download size={14} /> Update app</button>
               <button onClick={() => { setProfileOpen(false); notify('Workspace help is ready when you need it'); }}><CircleHelp size={14} /> Workspace help</button>
               {onSignOut && <button onClick={() => { setProfileOpen(false); onSignOut(); }}><LogOut size={14} /> Sign out</button>}
             </div>
@@ -112,6 +95,8 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
         </div>
       </div>
     </header>
+      <UpdateModal open={updateOpen} onClose={() => setUpdateOpen(false)} />
+    </>
   );
 }
 
