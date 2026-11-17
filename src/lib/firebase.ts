@@ -36,9 +36,11 @@
 
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import {
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -101,6 +103,29 @@ export interface FirebaseAuthTools extends FirebaseAuthFunctions {
 }
 
 let cachedTools: FirebaseAuthTools | null = null;
+// True once local persistence has been applied to the Auth instance.
+// Firebase Auth stores the session in IndexedDB/localStorage so the user
+// stays signed in across app restarts — but only when persistence is set
+// explicitly. The old code never called setPersistence, so the session
+// restore depended on the SDK default and the app never even checked it
+// on startup (see App.tsx). Set once, before any sign-in.
+let persistenceApplied = false;
+
+/**
+ * Applies browserLocalPersistence to the Auth instance (once). Awaits the
+ * SDK call so callers know the session will actually be stored locally.
+ * Failures are swallowed — the SDK's default IndexedDB persistence still
+ * applies in that case, and sign-in must never break over this.
+ */
+async function applyLocalPersistence(auth: FirebaseAuthLike): Promise<void> {
+  if (persistenceApplied) return;
+  persistenceApplied = true;
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch {
+    // Default persistence still applies; never block sign-in on this.
+  }
+}
 
 /**
  * Initialises (once) and returns the Auth instance plus the Firebase Auth
@@ -139,8 +164,12 @@ export function getFirebaseAuth(): Promise<FirebaseAuthLike | null> {
 /**
  * Returns the Auth instance plus the Firebase Auth functions, or `null` when
  * Firebase is not configured. Used by `auth.ts` so all Firebase SDK access
- * stays behind the `isFirebaseConfigured()` guard.
+ * stays behind the `isFirebaseConfigured()` guard. Applies local persistence
+ * (IndexedDB/localStorage) before resolving, so the session survives app
+ * restarts.
  */
-export function getFirebaseAuthTools(): Promise<FirebaseAuthTools | null> {
-  return Promise.resolve(getFirebaseAuthToolsSync());
+export async function getFirebaseAuthTools(): Promise<FirebaseAuthTools | null> {
+  const tools = getFirebaseAuthToolsSync();
+  if (tools) await applyLocalPersistence(tools.auth);
+  return tools;
 }

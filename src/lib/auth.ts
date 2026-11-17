@@ -67,7 +67,7 @@ function friendlyFirebaseError(error: unknown): Error {
     case 'auth/wrong-password':
       return new Error('Email or password is incorrect.');
     case 'auth/too-many-requests':
-      return new Error('Too many sign-in attempts. Please wait a little while and try again.');
+      return new Error('Too many sign-in attempts. Please wait a few minutes, then try once.');
     case 'auth/network-request-failed':
       return new Error('No internet connection. Check your connection and try again.');
     default:
@@ -142,6 +142,10 @@ export async function signUpWithEmail(name: string, email: string, password: str
       const tools = await requireFirebaseTools();
       const { user } = await tools.createUserWithEmailAndPassword(tools.auth, cleanEmail, password);
       await tools.updateProfile(user, { displayName: cleanName });
+      // Mirror the Firebase session in the local flag too, so the app's
+      // startup gate sees a signed-in user even before Firebase finishes
+      // restoring its own session.
+      startSession();
       return { ...toAccountFromFirebase(user), name: cleanName };
     } catch (error) {
       if (error instanceof Error && error.message.startsWith('Firebase is configured')) throw error;
@@ -169,6 +173,8 @@ export async function signInWithEmail(email: string, password: string): Promise<
     try {
       const tools = await requireFirebaseTools();
       const { user } = await tools.signInWithEmailAndPassword(tools.auth, cleanEmail, password);
+      // Mirror the Firebase session in the local flag too (see signUp).
+      startSession();
       return toAccountFromFirebase(user);
     } catch (error) {
       if (error instanceof Error && error.message.startsWith('Firebase is configured')) throw error;
@@ -201,6 +207,20 @@ export async function signOut(): Promise<void> {
     }
   }
   endSession();
+}
+
+/**
+ * Waits for Firebase Auth to finish restoring the saved session on app
+ * start (onAuthStateChanged first emission) and returns the signed-in
+ * account, or null. THE startup gate (App.tsx) must use this in Firebase
+ * mode — the old gate read only the localStorage flag `zenith-session-v1`,
+ * which Firebase sign-in never set, so the app showed the login screen on
+ * EVERY restart and forced the user to log in again and again (which also
+ * pushed Firebase into its too-many-requests rate limit). Local mode
+ * returns the onboarding account when a session exists on this device.
+ */
+export async function waitForAuthRestore(): Promise<Account | null> {
+  return getCurrentAccount();
 }
 
 /**
