@@ -228,7 +228,7 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
                     <span>Your name</span>
                     <span className="auth-input-wrap">
                       <UserRound size={15} />
-                      <input aria-label="Your name" autoComplete="name" placeholder="e.g. Mia Chen" value={name} onChange={(event) => setName(event.target.value)} />
+                      <input aria-label="Your name" autoComplete="name" placeholder="e.g. Alex" value={name} onChange={(event) => setName(event.target.value)} />
                     </span>
                   </label>
                 )}
