@@ -15,6 +15,7 @@ const fs = require('fs');
 const https = require('https');
 const os = require('os');
 const path = require('path');
+const { buildUpdateScript } = require('./update-script.cjs');
 
 const UPDATE_RAW = 'https://raw.githubusercontent.com/tylermorrison00/Zenith/main/package.json';
 const UPDATE_CHECK_TIMEOUT_MS = 10000; // version check must never hang the app
@@ -25,13 +26,18 @@ const UPDATE_DOWNLOAD_STALL_MS = 30000; // no data for 30s = stalled download, a
 // App root: project root in dev, resources/app in the packaged app.
 const APP_ROOT = path.join(__dirname, '..');
 
-// --- In-app updater (rewritten in v1.0.3) ---
+// --- In-app updater (rewritten in v1.0.3, install step rewritten in v1.0.5) ---
 // The old updater had two fatal flaws, both seen live by the user on v1.0.1:
 //   1. fetchText/downloadFile had NO timeout — a stalled request hung the
 //      IPC call forever, so the Update button sat on "Checking for
 //      updates…" for ~5 minutes until the app was force-closed.
 //   2. No progress events — the renderer learned nothing until the whole
 //      download finished (or never did).
+// v1.0.5: the v1.0.3 install step failed live twice on v1.0.3 — download
+// ran, app closed, nothing relaunched, still v1.0.3. Cause: the inline
+// PowerShell slept a fixed 2s (Zenith.exe still locked when the NSIS
+// installer ran, and silent /S skips locked files with no error) and
+// checked nothing. See update-install below and update-script.cjs.
 // The new flow is three small IPC calls the renderer drives step by step,
 // each with a hard timeout, and the download streams progress events:
 //   update-check    -> { ok, updateAvailable, currentVersion, latestVersion, message }
@@ -302,13 +308,21 @@ ipcMain.handle('update-download', async (event) => {
     }
     downloadRunning = false;
     const size = fs.existsSync(installerPath) ? fs.statSync(installerPath).size : 0;
+    if (result.total > 0 && result.received !== result.total) {
+      // Short download (connection cut mid-stream): the file looks big
+      // enough to pass the 50MB check but the installer would be corrupt.
+      try { fs.unlinkSync(installerPath); } catch {}
+      const msg = 'Downloaded installer looks incomplete. Try again.';
+      send('update-download-error', { message: msg });
+      return { ok: false, started: false, message: msg };
+    }
     if (size < 50 * 1024 * 1024) {
       try { fs.unlinkSync(installerPath); } catch {}
       const msg = 'Downloaded installer looks incomplete. Try again.';
       send('update-download-error', { message: msg });
       return { ok: false, started: false, message: msg };
     }
-    pendingUpdate = { version, installerPath, size: result.received || size };
+    pendingUpdate = { version, installerPath, size: result.received || size, expectedSize: result.total || 0 };
     send('update-download-done', { version, size: pendingUpdate.size });
     return { ok: true, started: true, version };
   } catch (e) {
@@ -320,33 +334,49 @@ ipcMain.handle('update-download', async (event) => {
 });
 
 // Step 3 — run the downloaded installer silently, then relaunch Zenith.
-// The app quits ~500ms after the installer is spawned; the PowerShell script
-// waits 2s (so no files are locked), installs silently, then launches
-// Zenith.exe from its installed location. userData (%APPDATA%\Zenith —
-// account login + workspace data) is never touched by the installer, so the
-// user stays signed in after the update.
+//
+// Rewritten in v1.0.5. The v1.0.3 version spawned an INLINE PowerShell
+// `-Command` string that slept a FIXED 2 seconds and then ran the NSIS
+// installer. Electron often takes longer than that to fully quit, so the
+// still-running Zenith.exe stayed file-locked; the NSIS installer in
+// silent /S mode silently skips locked files and exits 0, and the script
+// checked NOTHING (no exit code, no verification, no log) — the user
+// pressed Update twice on v1.0.3, the download ran, the app closed, and
+// nothing relaunched: still v1.0.3. The new flow writes a real .ps1 file
+// (see electron/update-script.cjs) that waits for the Zenith process to
+// FULLY exit (poll, up to 60s), runs the installer, checks its exit code,
+// VERIFIES the installed version (registry + Zenith.exe file version),
+// relaunches the new version, and logs every step to
+// %TEMP%\zenith-update-<version>.log — failures show a real error dialog
+// instead of failing silently. userData (%APPDATA%\Zenith — account login
+// + workspace data) is never touched by the installer, so the user stays
+// signed in after the update.
 ipcMain.handle('update-install', async () => {
   if (process.platform !== 'win32') return { ok: false, message: 'Update is only available on the Windows version.' };
   if (!pendingUpdate || !fs.existsSync(pendingUpdate.installerPath)) {
     return { ok: false, message: 'No downloaded update is ready. Download it first.' };
   }
   const installerPath = pendingUpdate.installerPath;
+  const version = pendingUpdate.version;
   const size = fs.statSync(installerPath).size;
   if (size < 50 * 1024 * 1024) {
     return { ok: false, message: 'Downloaded installer looks incomplete. Download it again.' };
   }
-  const ps = [
-    'Start-Sleep -Seconds 2',
-    `$exe = '${installerPath.replace(/'/g, "''")}'`,
-    'Unblock-File -Path $exe',
-    `Start-Process -FilePath $exe -ArgumentList '/S' -Wait`,
-    'Remove-Item -Path $exe -Force -ErrorAction SilentlyContinue',
-    `$dir = (Get-ItemProperty -Path 'HKCU:\\Software\\Zenith' -Name InstallDir -ErrorAction SilentlyContinue).InstallDir`,
-    `if (-not $dir) { $dir = "$env:LOCALAPPDATA\\Programs\\Zenith" }`,
-    `Start-Process -FilePath (Join-Path $dir 'Zenith.exe')`,
-  ].join('; ');
+  if (pendingUpdate.expectedSize > 0 && size !== pendingUpdate.expectedSize) {
+    return { ok: false, message: 'Downloaded installer looks incomplete. Download it again.' };
+  }
+  // The real install location: the folder this running exe lives in
+  // (fallback for the script if the registry key is ever missing).
+  const installDirHint = path.dirname(app.getPath('exe'));
+  const scriptPath = path.join(os.tmpdir(), `zenith-update-${version}.ps1`);
+  const logPath = path.join(os.tmpdir(), `zenith-update-${version}.log`);
   try {
-    spawn('powershell', ['-NoProfile', '-Command', ps], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    fs.writeFileSync(scriptPath, buildUpdateScript({ installerPath, version, installDirHint, logPath }), 'utf8');
+  } catch (e) {
+    return { ok: false, message: 'Could not prepare the update: ' + String(e.message || e) };
+  }
+  try {
+    spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } catch (e) {
     return { ok: false, message: 'Could not start the installer: ' + String(e.message || e) };
   }
