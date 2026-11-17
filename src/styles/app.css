@@ -11,8 +11,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 ::selection { color: var(--bg); background: var(--amber); }
-#root { min-height: 100vh; padding: 48px 24px 40px; box-shadow: inset 0 0 0 1px rgba(226,217,208,.08); }
-.app-shell { position: relative; width: min(100%, 1600px); min-height: calc(100vh - 88px); margin: 0 auto; padding: 0 26px 32px; overflow: clip; border: 1px solid rgba(226,217,208,.07); border-radius: 26px; background: radial-gradient(ellipse at 48% 0%, rgba(var(--brown-rgb),.18), transparent 34%), radial-gradient(rgba(226,217,208,.065) .7px, transparent .7px) 0 0 / 24px 24px, #070606; box-shadow: var(--shadow); }
+#root { min-height: 100vh; padding: 48px 24px 40px; }
+.app-shell { position: relative; width: min(100%, 1600px); min-height: calc(100vh - 88px); margin: 0 auto; padding: 0 26px 32px; overflow: clip; border: 0; border-radius: 26px; background: radial-gradient(ellipse at 48% 0%, rgba(var(--brown-rgb),.18), transparent 34%), radial-gradient(rgba(226,217,208,.065) .7px, transparent .7px) 0 0 / 24px 24px, #070606; box-shadow: var(--shadow); }
 /* Custom dark title bar (frameless Electron window) — replaces the standard
    Windows title bar. Fixed at the very top of the window, above every screen
    including onboarding; the whole bar drags the window, the buttons do not.
