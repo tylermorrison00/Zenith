@@ -1,4 +1,8 @@
 * { box-sizing: border-box; }
+/* Scrollbars are hidden everywhere — scrolling still works with the mouse
+   wheel, touch and keyboard; only the visible scrollbar strip is gone. */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
 html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; color: var(--text); background: var(--bg); font-family: var(--sans); font-size: 13px; font-weight: 400; letter-spacing: -0.012em; }
 button, input, textarea, select { font: inherit; }
@@ -7,8 +11,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 ::selection { color: var(--bg); background: var(--amber); }
-#root { min-height: 100vh; padding: 26px 24px 40px; }
-.app-shell { position: relative; width: min(100%, 1600px); min-height: calc(100vh - 66px); margin: 0 auto; padding: 0 26px 32px; overflow: clip; border: 1px solid rgba(226,217,208,.07); border-radius: 26px; background: radial-gradient(ellipse at 48% 0%, rgba(var(--brown-rgb),.18), transparent 34%), radial-gradient(rgba(226,217,208,.065) .7px, transparent .7px) 0 0 / 24px 24px, #070606; box-shadow: var(--shadow); }
+#root { min-height: 100vh; padding: 48px 24px 40px; box-shadow: inset 0 0 0 1px rgba(226,217,208,.08); }
+.app-shell { position: relative; width: min(100%, 1600px); min-height: calc(100vh - 88px); margin: 0 auto; padding: 0 26px 32px; overflow: clip; border: 1px solid rgba(226,217,208,.07); border-radius: 26px; background: radial-gradient(ellipse at 48% 0%, rgba(var(--brown-rgb),.18), transparent 34%), radial-gradient(rgba(226,217,208,.065) .7px, transparent .7px) 0 0 / 24px 24px, #070606; box-shadow: var(--shadow); }
+/* Custom dark title bar (frameless Electron window) — replaces the standard
+   Windows title bar. Fixed at the very top of the window, above every screen
+   including onboarding; the whole bar drags the window, the buttons do not.
+   Dark like the rest of the app, so there is no light/Windows-colored edge. */
+.titlebar { position: fixed; top: 0; left: 0; right: 0; z-index: 90; display: flex; align-items: center; height: 38px; padding: 0 2px 0 12px; background: #040303; border-bottom: 1px solid rgba(226,217,208,.07); -webkit-app-region: drag; user-select: none; -webkit-user-select: none; }
+.titlebar-brand { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+.titlebar-mark { display: block; width: 20px; height: 18px; }
+.titlebar-name { font-size: 12px; font-weight: 600; letter-spacing: -.02em; }
+.titlebar-divider { color: var(--dim); padding: 0 2px; }
+.titlebar-workspace { color: var(--muted); font-size: 10px; }
+.titlebar-spacer { flex: 1; }
+.titlebar-controls { display: flex; align-items: center; -webkit-app-region: no-drag; }
+.titlebar-btn { display: grid; place-items: center; width: 42px; height: 30px; color: #b9b4ad; border: 0; border-radius: 6px; background: transparent; }
+.titlebar-btn:hover { color: var(--text); background: rgba(226,217,208,.09); }
+.titlebar-btn--close:hover { color: #fff; background: #e81123; }
 .topbar { display: flex; align-items: center; gap: 26px; min-height: 68px; border-bottom: 1px solid rgba(226,217,208,.065); }
 .brand-lockup { display: flex; align-items: center; gap: 8px; min-width: 225px; white-space: nowrap; }
 .brand-mark { display: block; width: 27px; height: 24px; }
@@ -836,7 +855,7 @@ tr:last-child td { border-bottom: 0; }
    wide two-column layout; below 900px it stacks back into a single column. */
 .onboarding-shell { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: radial-gradient(ellipse at 32% 0%, rgba(var(--brown-rgb),.18), transparent 42%), radial-gradient(rgba(226,217,208,.05) .7px, transparent .7px) 0 0 / 24px 24px, var(--bg); }
 .onboarding-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(760px 460px at 18% -80px, rgba(var(--amber-rgb),.15), transparent 65%), radial-gradient(620px 460px at 92% 108%, rgba(98,124,123,.13), transparent 70%); }
-.onboarding-inner { position: relative; width: 100%; max-width: 1440px; min-height: 100%; margin: 0 auto; padding: 34px 56px 44px; display: flex; flex-direction: column; }
+.onboarding-inner { position: relative; width: 100%; max-width: 1440px; min-height: 100%; margin: 0 auto; padding: 74px 56px 44px; display: flex; flex-direction: column; }
 .onboarding-welcome, .onboarding-auth { flex: 1; display: flex; align-items: center; gap: 72px; margin-top: 12px; }
 .onboarding-copy { flex: 1 1 540px; max-width: 620px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
 .orbit-visual { position: relative; flex: 1 1 560px; width: 100%; max-width: 640px; height: 500px; }
@@ -898,12 +917,12 @@ tr:last-child td { border-bottom: 0; }
 .auth-switch { background: none; border: none; padding: 0; color: var(--amber); font: inherit; font-weight: 600; cursor: pointer; }
 .auth-switch:hover { text-decoration: underline; }
 @media (max-width: 1100px) {
-  .onboarding-inner { padding: 30px 36px 40px; }
+  .onboarding-inner { padding: 70px 36px 40px; }
   .onboarding-welcome, .onboarding-auth { gap: 40px; }
   .orbit-visual { height: 420px; }
 }
 @media (max-width: 900px) {
-  .onboarding-inner { padding: 28px 22px 34px; }
+  .onboarding-inner { padding: 68px 22px 34px; }
   .onboarding-welcome, .onboarding-auth { flex-direction: column; align-items: center; gap: 10px; margin-top: 22px; }
   .onboarding-copy { flex: none; max-width: 430px; align-items: center; text-align: center; }
   .onboarding-welcome .orbit-visual { order: -1; }
