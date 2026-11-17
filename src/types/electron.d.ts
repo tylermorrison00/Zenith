@@ -10,6 +10,12 @@ export interface ZenithUpdateResult {
 export interface ZenithBridge {
   getVersion: () => Promise<string>;
   doUpdate: () => Promise<ZenithUpdateResult>;
+  // Custom dark title bar (frameless window) controls.
+  minimizeWindow: () => Promise<void>;
+  toggleMaximize: () => Promise<boolean>;
+  closeWindow: () => Promise<void>;
+  isMaximized: () => Promise<boolean>;
+  onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void;
 }
 
 declare global {
