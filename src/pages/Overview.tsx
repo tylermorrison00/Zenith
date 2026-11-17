@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, FileText, Headphones, Pause, Play, Plus, SquareArrowOutUpRight, Timer, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, SquareArrowOutUpRight, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -98,13 +98,6 @@ export function OverviewPage() {
         <div className="overview-heading-row">
           <div><PageEyebrow>{todayLabel()}</PageEyebrow><h1 className="display-title display-title--italic">Today's focus</h1></div>
           <div className="week-pill"><button aria-label="Previous week" onClick={() => setWeek((value) => value - 1)}><ChevronLeft size={13} /></button><span>Week {week}</span><button aria-label="Next week" onClick={() => setWeek((value) => value + 1)}><ChevronRight size={13} /></button></div>
-        </div>
-        <div className="quick-add-row">
-          <button className="quick-chip quick-chip--selected" onClick={() => { startTimer(); navigate('/focus'); }}><Timer size={13} /> Focus block</button>
-          <button className="quick-chip" onClick={() => setAddType('task')}><ListChecks size={13} /> Task</button>
-          <button className="quick-chip" onClick={() => setAddType('note')}><FileText size={13} /> Note</button>
-          <button className="quick-chip" onClick={() => { notify('Break added · 15 minutes'); }}><Clock3 size={13} /> Break</button>
-          <button className="quick-chip quick-chip--add" aria-label="Add a task" onClick={() => setAddType('task')}><Plus size={17} /></button>
         </div>
         <div className="overview-metrics">
           <MetricCard title="Deep work today" value="0.0" unit="h" foot="No sessions yet" points={[]} />
