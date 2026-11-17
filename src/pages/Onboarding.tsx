@@ -128,6 +128,12 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  // While a sign-in / sign-up is in flight the submit button is disabled.
+  // Without this, an impatient second click fired a SECOND sign-in attempt
+  // with the same credentials — each click counts toward Firebase's
+  // too-many-requests rate limit, which is exactly what locked the user out
+  // with correct credentials (v1.0.3 fix). One click = one attempt, ever.
+  const [pending, setPending] = useState(false);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -136,6 +142,8 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    // Guard: never fire a second attempt while one is already in flight.
+    if (pending) return;
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
       setError('Enter a valid email address to continue.');
@@ -152,16 +160,20 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
         setError('Enter your name so your workspace feels like yours.');
         return;
       }
+      setPending(true);
       try {
         const account = await signUpWithEmail(cleanName, cleanEmail, password);
         notify(`Welcome to Zenith, ${account.name.split(' ')[0]}`);
         onComplete();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong with sign-in. Please try again.');
+      } finally {
+        setPending(false);
       }
       return;
     }
 
+    setPending(true);
     try {
       const account = await signInWithEmail(cleanEmail, password);
       notify(`Welcome back, ${account.name.split(' ')[0]}`);
@@ -172,6 +184,8 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
       if (message === 'No account on this device yet — create one first.') {
         setMode('create');
       }
+    } finally {
+      setPending(false);
     }
   }
 
@@ -249,9 +263,15 @@ export function OnboardingPage({ onComplete, theme = 'amber' }: { onComplete: ()
 
                 {error && <p className="auth-error" role="alert">{error}</p>}
 
-                <button className="auth-submit" type="submit">
+                <button className="auth-submit" type="submit" disabled={pending}>
                   <Check size={15} />
-                  {mode === 'create' ? 'Create account & enter' : 'Log in & enter'}
+                  {pending
+                    ? mode === 'create'
+                      ? 'Creating account…'
+                      : 'Signing in…'
+                    : mode === 'create'
+                      ? 'Create account & enter'
+                      : 'Log in & enter'}
                 </button>
               </form>
 
