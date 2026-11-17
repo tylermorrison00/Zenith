@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Check, ChevronDown, CircleHelp, Command, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Timer, UserRound, X, Zap } from 'lucide-react';
+import { Bell, Check, ChevronDown, CircleHelp, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Target, Timer, UserRound, X, Zap } from 'lucide-react';
+import { ListChecks } from '../lib/icons';
 import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
 import { isFirebaseConfigured } from '../lib/firebase';
-import { nextTheme, themeLogo, type ThemeName } from '../lib/theme';
+import { nextTheme, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
 export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOut?: () => void; theme?: ThemeName; onToggleTheme?: () => void }) {
-  const { startTimer, notify } = useDashboard();
+  const { startTimer, notify, timer } = useDashboard();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -35,15 +36,21 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
       cancelled = true;
     };
   }, []);
-  const profileName = account?.name ?? 'Mia Chen';
+  const profileName = account?.name ?? 'Zenith user';
   const profileEmail = account?.email ?? 'Studio workspace';
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || 'M';
-  const active = location.pathname.startsWith('/focus') ? '/focus'
+  const active = location.pathname.startsWith('/tasks') ? '/tasks'
+    : location.pathname.startsWith('/habits') ? '/habits'
+    : location.pathname.startsWith('/notes') ? '/notes'
+    : location.pathname.startsWith('/focus') ? '/focus'
     : location.pathname.startsWith('/projects') ? '/projects'
       : location.pathname.startsWith('/review') ? '/review' : '/';
 
   const nav = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
+    { to: '/tasks', label: 'Tasks', icon: ListChecks },
+    { to: '/habits', label: 'Habits', icon: Target },
+    { to: '/notes', label: 'Notes', icon: FileText },
     { to: '/focus', label: 'Focus', icon: Timer },
     { to: '/projects', label: 'Projects', icon: Folder },
     { to: '/review', label: 'Review', icon: Sparkles },
@@ -51,12 +58,6 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
 
   return (
     <header className="topbar">
-      <Link className="brand-lockup" to="/" aria-label="Zenith Studio workspace home">
-        <img src={themeLogo(theme)} alt="" className="brand-mark" />
-        <span className="brand-name">Zenith</span>
-        <span className="brand-divider">/</span>
-        <span className="workspace-name">Studio workspace</span>
-      </Link>
       <nav className="main-nav" aria-label="Main navigation">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className={`nav-link ${active === to ? 'is-active' : ''}`}>
@@ -81,7 +82,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
           {profileOpen && (
             <div className="profile-popover">
               <div className="profile-person"><span className="avatar-large">{profileInitial}</span><div><strong>{profileName}</strong><small>{profileEmail}</small></div></div>
-              <div className="profile-streak"><Zap size={14} /><span>6 day focus streak</span><b>6</b></div>
+              <div className="profile-streak"><Zap size={14} /><span>{timer.sessions === 0 ? 'No focus streak yet' : `${timer.sessions} day focus streak`}</span>{timer.sessions > 0 && <b>{timer.sessions}</b>}</div>
               <button onClick={() => { setProfileOpen(false); navigate('/'); document.getElementById('habit-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><UserRound size={14} /> Open daily rituals</button>
               <button onClick={() => { setProfileOpen(false); onToggleTheme?.(); const next = nextTheme(theme); notify(`${next.charAt(0).toUpperCase()}${next.slice(1)} theme on`); }}><Palette size={14} /> Theme color</button>
               <button disabled={checkingUpdate} onClick={async () => {
@@ -114,11 +115,6 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   );
 }
 
-const searchablePeople = [
-  { name: 'Mia Chen', role: 'Design lead · Brand Refresh', href: '/projects/brand-refresh' },
-  { name: 'Lena Park', role: 'Product partner · Zenith v2 spec', href: '/focus' },
-];
-
 function SearchBox() {
   const { tasks, notes, projects } = useDashboard();
   const navigate = useNavigate();
@@ -130,13 +126,11 @@ function SearchBox() {
     if (!q) return [];
     const found: { type: string; title: string; detail: string; href: string; icon: typeof FileText }[] = [];
     tasks.filter((task) => `${task.title} ${task.project}`.toLowerCase().includes(q)).slice(0, 4)
-      .forEach((task: Task) => found.push({ type: 'Task', title: task.title, detail: task.project, href: '/focus', icon: Check }));
+      .forEach((task: Task) => found.push({ type: 'Task', title: task.title, detail: task.project, href: '/tasks', icon: Check }));
     notes.filter((note) => `${note.title} ${note.excerpt} ${note.project}`.toLowerCase().includes(q)).slice(0, 3)
-      .forEach((note: Note) => found.push({ type: 'Note', title: note.title, detail: note.project, href: '/', icon: FileText }));
+      .forEach((note: Note) => found.push({ type: 'Note', title: note.title, detail: note.project, href: '/notes', icon: FileText }));
     projects.filter((project) => `${project.name} ${project.status}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach((project: Project) => found.push({ type: 'Project', title: project.name, detail: project.status, href: project.id === 'brand-refresh' ? '/projects/brand-refresh' : '/projects', icon: Folder }));
-    searchablePeople.filter((person) => `${person.name} ${person.role}`.toLowerCase().includes(q)).slice(0, 3)
-      .forEach((person) => found.push({ type: 'Person', title: person.name, detail: person.role, href: person.href, icon: UserRound }));
     return found.slice(0, 7);
   }, [q, tasks, notes, projects]);
 
@@ -158,7 +152,7 @@ function SearchBox() {
         onBlur={() => window.setTimeout(() => setFocused(false), 160)}
         onKeyDown={(event) => { if (event.key === 'Enter' && results[0]) go(results[0].href); if (event.key === 'Escape') { setQuery(''); setFocused(false); } }}
       />
-      {query ? <button className="search-clear" aria-label="Clear search" onMouseDown={(event) => event.preventDefault()} onClick={() => setQuery('')}><X size={13} /></button> : <span className="shortcut"><Command size={10} /> K</span>}
+      {query && <button className="search-clear" aria-label="Clear search" onMouseDown={(event) => event.preventDefault()} onClick={() => setQuery('')}><X size={13} /></button>}
       {focused && q && (
         <div className="search-results">
           <div className="search-results-label">Search results</div>
@@ -213,7 +207,7 @@ export function StatTile({ label, value, change, icon, className = '' }: { label
   );
 }
 
-export function MiniBars({ values = [20, 31, 28, 46, 34, 52, 47, 65, 55, 72, 68, 92] }: { values?: number[] }) {
+export function MiniBars({ values = [] }: { values?: number[] }) {
   return <div className="mini-bars" aria-hidden="true">{values.map((height, index) => <span key={index} className={index >= values.length - 2 ? 'is-amber' : ''} style={{ height: `${height}%` }} />)}</div>;
 }
 

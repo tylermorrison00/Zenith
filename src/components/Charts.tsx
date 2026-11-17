@@ -1,7 +1,7 @@
 import { focusVolumeBars, weekDays } from '../data/seed';
 
-const priorDeepFocusBars = [2.4, 3.1, 2.7, 3.9, 4.2, 3.4, 2.6, 3.8, 2.1, 3.5, 4.0, 2.9, 3.7, 4.1, 3.3, 3.6];
-const shallowFocusBars = [0.5, 0.7, 0.9, 0.6, 1.2, 0.8, 1.1, 1.4, 0.6, 1.3, 0.9, 1.2, 0.7, 1.5, 0.8, 1.0, 0.8, 1.0, 0.7, 1.1, 1.2, 0.5, 0.4, 1.0, 1.3, 0.8, 1.2, 1.4, 0.5, 1.3];
+const priorDeepFocusBars: number[] = [];
+const shallowFocusBars: number[] = [];
 
 export function focusVolumeSeries(mode: 'Deep' | 'Shallow', period: string) {
   const allValues = mode === 'Deep' ? [...priorDeepFocusBars, ...focusVolumeBars] : shallowFocusBars;
@@ -10,8 +10,11 @@ export function focusVolumeSeries(mode: 'Deep' | 'Shallow', period: string) {
 
 export function FocusVolumeChart({ mode, period }: { mode: 'Deep' | 'Shallow'; period: string }) {
   const values = focusVolumeSeries(mode, period);
+  if (!values.length) {
+    return <div className="chart-empty">No focus data yet — finish a session to see your volume here.</div>;
+  }
   const max = mode === 'Deep' ? 6 : 3;
-  const today = new Date(Date.UTC(2025, 9, 20));
+  const today = new Date();
   const labels = Array.from({ length: 30 }, (_, index) => {
     if (index === 29) return 'Today';
     const date = new Date(today);
@@ -40,7 +43,6 @@ export function FocusVolumeChart({ mode, period }: { mode: 'Deep' | 'Shallow'; p
           const y = bottom - height;
           const active = index === values.length - 1;
           return <g key={labels[index]}>
-            <rect x={x} y={Math.max(10, y - 9)} width={barWidth} height="9" rx="4.5" className={active ? 'chart-cap chart-cap--amber' : 'chart-cap'} />
             <rect x={x} y={y} width={barWidth} height={height} rx="5" className={active ? 'chart-bar chart-bar--amber' : 'chart-bar'} />
             <text x={x + barWidth / 2} y="176" textAnchor="middle" className={`chart-x-label ${active ? 'chart-x-label--active' : ''}`}>{labels[index]}</text>
           </g>;
@@ -52,7 +54,7 @@ export function FocusVolumeChart({ mode, period }: { mode: 'Deep' | 'Shallow'; p
   );
 }
 
-export function FlowGauge({ score = 86 }: { score?: number }) {
+export function FlowGauge({ score = 0, caption = 'No sessions yet' }: { score?: number; caption?: string }) {
   return (
     <div className="flow-gauge">
       <svg viewBox="0 0 320 190" role="img" aria-label={`Flow score ${score} out of 100`}>
@@ -62,13 +64,13 @@ export function FlowGauge({ score = 86 }: { score?: number }) {
         <path d="M68 165 A92 92 0 0 1 252 165" className="gauge-track gauge-track--inner" />
         <path d="M68 165 A92 92 0 0 1 252 165" className="gauge-progress" pathLength="100" strokeDasharray={`${score} 100`} />
         <circle cx="228" cy="107" r="4" className="gauge-marker" />
-        <text x="160" y="138" textAnchor="middle" className="gauge-caption">3 of 4 sessions</text>
+        <text x="160" y="138" textAnchor="middle" className="gauge-caption">{caption}</text>
       </svg>
     </div>
   );
 }
 
-export function TimerRing({ progress = 54 }: { progress?: number }) {
+export function TimerRing({ progress = 0 }: { progress?: number }) {
   const ticks = Array.from({ length: 60 }, (_, index) => {
     const active = index >= 29 && index < 29 + Math.round(progress * 0.6);
     return <line key={index} x1="120" y1="17" x2="120" y2={index % 5 === 0 ? '31' : '26'} transform={`rotate(${index * 6} 120 120)`} className={active ? 'timer-tick timer-tick--active' : 'timer-tick'} />;
@@ -91,7 +93,7 @@ export function WeeklyBars({ days = weekDays }: { days?: typeof weekDays }) {
         <div className={`day-bar-column ${day === 'Fri' ? 'day-bar-column--best' : ''}`} key={day}>
           <span className="day-bar-value">{value.toFixed(1)}h</span>
           <div className="day-bar-stack" style={{ height: `${(value / max) * 178}px` }}>
-            {parts.map((part, index) => <span key={index} style={{ height: `${(part / value) * 100}%` }} />)}
+            {parts.map((part, index) => <span key={index} style={{ height: `${value > 0 ? (part / value) * 100 : 0}%` }} />)}
           </div>
           <span className="day-bar-label">{day}</span>
         </div>
@@ -100,8 +102,8 @@ export function WeeklyBars({ days = weekDays }: { days?: typeof weekDays }) {
   );
 }
 
-export function PeakHoursChart() {
-  const values = [8, 12, 23, 29, 27, 21, 13, 10, 8, 6, 9, 14, 18, 21, 17, 13, 10, 8, 6, 5, 4, 3, 2, 2, 1];
+export function PeakHoursChart({ hasData = false }: { hasData?: boolean }) {
+  const values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const width = 660;
   const height = 230;
   const left = 24;
@@ -112,7 +114,7 @@ export function PeakHoursChart() {
   return (
     <svg className="peak-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Peak hours from 08:00 to 20:00, with a highlighted focus peak between 09:00 and 11:00">
       <rect x={left + step * 2} y="24" width={step * 4} height="174" rx="12" className="peak-zone" />
-      <text x={left + step * 2 + 8} y="43" className="peak-zone-label">09:00 – 11:00 · your peak</text>
+      <text x={left + step * 2 + 8} y="43" className="peak-zone-label">09:00 – 11:00{hasData ? ' · your peak' : ''}</text>
       {values.map((value, index) => {
         const x = left + step * index;
         const y = base - (value / 30) * (base - top);
@@ -129,7 +131,7 @@ export function PeakHoursChart() {
 }
 
 export function PlannedVsDone() {
-  const planned = [70, 84, 92, 82, 76, 0, 0];
-  const done = [52, 61, 68, 56, 49, 0, 0];
+  const planned = [0, 0, 0, 0, 0, 0, 0];
+  const done = [0, 0, 0, 0, 0, 0, 0];
   return <div className="planned-vs-done" aria-label="Planned versus done from Monday through Sunday">{planned.map((value, index) => <div className="planned-day" key={index}><span className="planned-track"><i style={{ height: `${value}%` }} /><b style={{ height: `${done[index]}%` }} /></span><small>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</small></div>)}</div>;
 }
