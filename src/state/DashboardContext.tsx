@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { readStorage, writeStorage } from '../lib/storage';
-import { ritualsSeed, seedHabits, seedNotes, seedProjectFiles, seedProjects, seedTasks, weekRulesSeed, type FocusPlanAddition, type Habit, type Note, type Project, type ProjectFile, type Task } from '../data/seed';
+import { HABIT_HISTORY_DAYS, habitHistory, ritualsSeed, seedHabits, seedNotes, seedProjectFiles, seedProjects, seedTaskLists, seedTasks, streakFromHistory, weekRulesSeed, type FocusPlanAddition, type Habit, type Note, type Project, type ProjectFile, type Task, type TaskList } from '../data/seed';
 
 type ToggleItem = { id: string; title: string; detail: string; on: boolean };
 type StoredTimer = { seconds: number; running: boolean; changedAt: number; sessions: number; progress: number };
 type DashboardState = {
   tasks: Task[];
+  taskLists: TaskList[];
   notes: Note[];
   habits: Habit[];
   projects: Project[];
@@ -20,12 +21,17 @@ type DashboardState = {
 };
 
 type DashboardContextValue = DashboardState & {
-  addTask: (title: string, project?: string) => void;
+  addTask: (title: string, project?: string, priority?: Task['priority']) => void;
+  addTaskList: (name: string) => void;
+  deleteTaskList: (id: string) => void;
   addNote: (title: string, body: string) => void;
   addProject: (name: string) => void;
   addFocusPlanBlock: (block: FocusPlanAddition) => void;
   addProjectFile: (file: { name: string; size: number; type: string }) => void;
   toggleTask: (id: string) => void;
+  addHabit: (title: string, detail: string) => void;
+  updateHabit: (id: string, title: string, detail: string) => void;
+  deleteHabit: (id: string) => void;
   toggleHabit: (id: string) => void;
   toggleRitual: (id: string) => void;
   toggleWeekRule: (id: string) => void;
@@ -39,11 +45,15 @@ type DashboardContextValue = DashboardState & {
   toast: string;
 };
 
-const stateKey = 'zenith-dashboard-v1';
-const timerKey = 'zenith-focus-timer-v1';
-const initialTimer: StoredTimer = { seconds: 41 * 60 + 42, running: true, changedAt: Date.now(), sessions: 0, progress: 54 };
+const stateKey = 'zenith-dashboard-v2';
+const timerKey = 'zenith-focus-timer-v2';
+// A fresh install starts with a clean 60-minute block, paused, with no
+// sessions logged yet. (v2 keys replace the v1 keys so any demo data saved
+// by an earlier build is ignored and the app truly starts empty.)
+const initialTimer: StoredTimer = { seconds: 60 * 60, running: false, changedAt: Date.now(), sessions: 0, progress: 0 };
 const initialState: DashboardState = {
   tasks: seedTasks,
+  taskLists: seedTaskLists,
   notes: seedNotes,
   habits: seedHabits,
   projects: seedProjects,
@@ -57,6 +67,16 @@ const initialState: DashboardState = {
   timer: initialTimer,
 };
 
+/** Every habit carries a 28-day check history (oldest first, last entry is
+ *  today). Habits saved without one get a history derived from their streak,
+ *  so the card grid, the daily tick and the streak always agree. */
+function normalizeHabit(habit: Habit): Habit {
+  const history = Array.isArray(habit.history) && habit.history.length === HABIT_HISTORY_DAYS
+    ? habit.history.map(Boolean)
+    : habitHistory(habit.streak, habit.done);
+  return { ...habit, history, streak: streakFromHistory(history), done: Boolean(history[history.length - 1]) };
+}
+
 function loadInitialState(): DashboardState {
   const saved = readStorage<Partial<DashboardState>>(stateKey, {});
   const storedTimer = readStorage<StoredTimer | null>(timerKey, null);
@@ -69,11 +89,10 @@ function loadInitialState(): DashboardState {
     ...initialState,
     ...saved,
     tasks: saved.tasks ?? seedTasks,
+    taskLists: saved.taskLists ?? seedTaskLists,
     notes: saved.notes ?? seedNotes,
-    habits: saved.habits ?? seedHabits,
-    projects: (saved.projects ?? seedProjects).map((project) => project.id === 'brand-refresh'
-      ? { ...project, progress: 68, due: 'Fri 14 Nov', status: 'On track' }
-      : project),
+    habits: (saved.habits ?? seedHabits).map(normalizeHabit),
+    projects: saved.projects ?? seedProjects,
     rituals: saved.rituals ?? ritualsSeed,
     weekRules: saved.weekRules ?? weekRulesSeed,
     appliedWeekRules: saved.appliedWeekRules ?? [],
@@ -113,13 +132,24 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const notify = useCallback((message: string) => setToast(message), []);
-  const addTask = useCallback((title: string, project = 'Zenith v2 spec') => {
-    const task: Task = { id: `task-${Date.now()}`, title, project, due: 'Today · just added', done: false, priority: 'normal' };
+  const addTask = useCallback((title: string, project = 'General', priority: Task['priority'] = 'normal') => {
+    const task: Task = { id: `task-${Date.now()}`, title, project, due: 'Today · just added', done: false, priority };
     setState((current) => ({ ...current, tasks: [task, ...current.tasks] }));
     setToast('Task added to your day');
   }, []);
+  const addTaskList = useCallback((name: string) => {
+    const list: TaskList = { id: `list-${Date.now()}`, name };
+    setState((current) => current.taskLists.some((item) => item.name.toLowerCase() === name.toLowerCase())
+      ? current
+      : { ...current, taskLists: [...current.taskLists, list] });
+    setToast(`"${name}" list created`);
+  }, []);
+  const deleteTaskList = useCallback((id: string) => {
+    setState((current) => ({ ...current, taskLists: current.taskLists.filter((item) => item.id !== id) }));
+    setToast('List removed · its tasks stay in All tasks');
+  }, []);
   const addNote = useCallback((title: string, body: string) => {
-    const note: Note = { id: `note-${Date.now()}`, title, excerpt: body || 'A new note for this block.', project: 'Zenith v2 spec', updated: 'Just now' };
+    const note: Note = { id: `note-${Date.now()}`, title, excerpt: body || 'A new note for this block.', project: 'General', updated: 'Just now' };
     setState((current) => ({ ...current, notes: [note, ...current.notes] }));
     setToast('Note saved to your library');
   }, []);
@@ -144,13 +174,34 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setState((current) => current.projectFiles.some((item) => item.name === entry.name)
       ? current
       : { ...current, projectFiles: [entry, ...current.projectFiles] });
-    setToast(`${file.name} added to Brand Refresh`);
+    setToast(`${file.name} added to your files`);
   }, []);
   const toggleTask = useCallback((id: string) => {
     setState((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) }));
   }, []);
   const toggleHabit = useCallback((id: string) => {
-    setState((current) => ({ ...current, habits: current.habits.map((habit) => habit.id === id ? { ...habit, done: !habit.done } : habit) }));
+    setState((current) => ({
+      ...current,
+      habits: current.habits.map((habit) => {
+        if (habit.id !== id) return habit;
+        const history = habit.history.slice();
+        history[history.length - 1] = !history[history.length - 1];
+        return { ...habit, history, done: Boolean(history[history.length - 1]), streak: streakFromHistory(history) };
+      }),
+    }));
+  }, []);
+  const addHabit = useCallback((title: string, detail: string) => {
+    const habit: Habit = { id: `habit-${Date.now()}`, title, detail: detail || 'Every day', streak: 0, done: false, history: habitHistory(0, false) };
+    setState((current) => ({ ...current, habits: [habit, ...current.habits] }));
+    setToast('Habit card added');
+  }, []);
+  const updateHabit = useCallback((id: string, title: string, detail: string) => {
+    setState((current) => ({ ...current, habits: current.habits.map((habit) => habit.id === id ? { ...habit, title, detail: detail || habit.detail } : habit) }));
+    setToast('Habit updated');
+  }, []);
+  const deleteHabit = useCallback((id: string) => {
+    setState((current) => ({ ...current, habits: current.habits.filter((habit) => habit.id !== id) }));
+    setToast('Habit removed');
   }, []);
   const toggleRitual = useCallback((id: string) => {
     setState((current) => ({ ...current, rituals: current.rituals.map((item) => item.id === id ? { ...item, on: !item.on } : item) }));
@@ -179,9 +230,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<DashboardContextValue>(() => ({
-    ...state, addTask, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, toggleHabit, toggleRitual, toggleWeekRule,
+    ...state, addTask, addTaskList, deleteTaskList, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule,
     toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast,
-  }), [state, addTask, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, toggleHabit, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
+  }), [state, addTask, addTaskList, deleteTaskList, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
