@@ -50,6 +50,7 @@ export interface ZenithBridge {
   closeWindow: () => Promise<void>;
   isMaximized: () => Promise<boolean>;
   onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void;
+  setThemeIcon?: (theme: string) => Promise<boolean>;
 }
 
 declare global {

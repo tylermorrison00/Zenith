@@ -29,8 +29,6 @@ export function TitleBar({ theme = 'amber' }: { theme?: ThemeName }) {
       <div className="titlebar-brand">
         <img src={themeLogo(theme)} alt="" className="titlebar-mark" />
         <span className="titlebar-name">Zenith</span>
-        <span className="titlebar-divider">/</span>
-        <span className="titlebar-workspace">Studio workspace</span>
       </div>
       <div className="titlebar-spacer" />
       {isDesktop && (

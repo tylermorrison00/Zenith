@@ -24,7 +24,6 @@ function formatClock(date: Date) {
 function TimelinePanel() {
   const { notify } = useDashboard();
   return <div className="timeline-panel">
-    <div className="timeline-line" />
     <div className="library-no-results">No blocks on the timeline yet — add a task to plan your day.</div>
     <button className="button-quiet" onClick={() => notify('Add a task to plan your day')}>Plan your day</button>
   </div>;

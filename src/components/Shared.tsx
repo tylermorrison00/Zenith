@@ -49,11 +49,11 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
 
   const nav = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
+    { to: '/projects', label: 'Projects', icon: Folder },
     { to: '/tasks', label: 'Tasks', icon: ListChecks },
     { to: '/habits', label: 'Habits', icon: Target },
     { to: '/notes', label: 'Notes', icon: FileText },
     { to: '/focus', label: 'Focus', icon: Timer },
-    { to: '/projects', label: 'Projects', icon: Folder },
     { to: '/review', label: 'Review', icon: Sparkles },
   ];
 
@@ -84,11 +84,8 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
           {profileOpen && (
             <div className="profile-popover">
               <div className="profile-person"><span className="avatar-large">{profileInitial}</span><div><strong>{profileName}</strong><small>{profileEmail}</small></div></div>
-              <div className="profile-streak"><Zap size={14} /><span>{timer.sessions === 0 ? 'No focus streak yet' : `${timer.sessions} day focus streak`}</span>{timer.sessions > 0 && <b>{timer.sessions}</b>}</div>
-              <button onClick={() => { setProfileOpen(false); navigate('/'); document.getElementById('habit-list')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}><UserRound size={14} /> Open daily rituals</button>
               <button onClick={() => { setProfileOpen(false); onToggleTheme?.(); const next = nextTheme(theme); notify(`${next.charAt(0).toUpperCase()}${next.slice(1)} theme on`); }}><Palette size={14} /> Theme color</button>
               <button onClick={() => { setProfileOpen(false); setUpdateOpen(true); }}><Download size={14} /> Update app</button>
-              <button onClick={() => { setProfileOpen(false); notify('Workspace help is ready when you need it'); }}><CircleHelp size={14} /> Workspace help</button>
               {onSignOut && <button onClick={() => { setProfileOpen(false); onSignOut(); }}><LogOut size={14} /> Sign out</button>}
             </div>
           )}
@@ -220,5 +217,5 @@ export function Toast() {
 }
 
 export function InlineBackLink({ to, children }: { to: string; children: React.ReactNode }) {
-  return <Link className="back-link" to={to}><span aria-hidden="true">←</span>{children}</Link>;
+  return <Link className="button-light back-link" to={to}><span aria-hidden="true">←</span>{children}</Link>;
 }

@@ -18,14 +18,21 @@ type DashboardState = {
   heldBlock: boolean;
   appliedPlan: boolean;
   timer: StoredTimer;
+  lastHabitDate?: string;
 };
 
 type DashboardContextValue = DashboardState & {
   addTask: (title: string, project?: string, priority?: Task['priority']) => void;
+  updateTask: (id: string, title: string, project?: string, priority?: Task['priority']) => void;
+  deleteTask: (id: string) => void;
   addTaskList: (name: string) => void;
   deleteTaskList: (id: string) => void;
   addNote: (title: string, body: string) => void;
+  updateNote: (id: string, title: string, body: string) => void;
+  deleteNote: (id: string) => void;
   addProject: (name: string) => void;
+  updateProject: (id: string, name: string) => void;
+  deleteProject: (id: string) => void;
   addFocusPlanBlock: (block: FocusPlanAddition) => void;
   addProjectFile: (file: { name: string; size: number; type: string }) => void;
   toggleTask: (id: string) => void;
@@ -70,6 +77,29 @@ const initialState: DashboardState = {
 /** Every habit carries a 28-day check history (oldest first, last entry is
  *  today). Habits saved without one get a history derived from their streak,
  *  so the card grid, the daily tick and the streak always agree. */
+function getTodayDateString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function rollHabit(habit: Habit, days: number): Habit {
+  if (days <= 0) return normalizeHabit(habit);
+  const old = Array.isArray(habit.history) && habit.history.length === HABIT_HISTORY_DAYS
+    ? habit.history.map(Boolean)
+    : habitHistory(habit.streak, habit.done);
+  const next = days >= HABIT_HISTORY_DAYS ? Array(HABIT_HISTORY_DAYS).fill(false) : [...old.slice(days), ...Array(days).fill(false)];
+  return { ...habit, history: next, streak: streakFromHistory(next), done: false };
+}
+
+function calcDaysPassed(lastDate: string | undefined, todayDate: string, habits?: Habit[]): number {
+  if (!lastDate) {
+    return (habits || []).some((h) => h.done) ? 1 : 0;
+  }
+  const [y1, m1, d1] = lastDate.split('-').map(Number);
+  const [y2, m2, d2] = todayDate.split('-').map(Number);
+  return Math.max(0, Math.round((new Date(y2, m2 - 1, d2).getTime() - new Date(y1, m1 - 1, d1).getTime()) / 864e5));
+}
+
 function normalizeHabit(habit: Habit): Habit {
   const history = Array.isArray(habit.history) && habit.history.length === HABIT_HISTORY_DAYS
     ? habit.history.map(Boolean)
@@ -85,13 +115,18 @@ function loadInitialState(): DashboardState {
     const elapsed = Math.max(0, Math.floor((Date.now() - timer.changedAt) / 1000));
     timer = { ...timer, seconds: Math.max(0, timer.seconds - elapsed), progress: Math.min(100, timer.progress + elapsed / 36), changedAt: Date.now(), running: timer.seconds - elapsed > 0 };
   }
+  const today = getTodayDateString();
+  const days = calcDaysPassed(saved.lastHabitDate, today, saved.habits);
+  const loadedHabits = (saved.habits ?? seedHabits).map((h) => rollHabit(h, days));
+
   return {
     ...initialState,
     ...saved,
+    lastHabitDate: today,
     tasks: saved.tasks ?? seedTasks,
     taskLists: saved.taskLists ?? seedTaskLists,
     notes: saved.notes ?? seedNotes,
-    habits: (saved.habits ?? seedHabits).map(normalizeHabit),
+    habits: loadedHabits,
     projects: saved.projects ?? seedProjects,
     rituals: saved.rituals ?? ritualsSeed,
     weekRules: saved.weekRules ?? weekRulesSeed,
@@ -112,6 +147,27 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     writeStorage(stateKey, { ...state, timer: undefined });
     writeStorage(timerKey, state.timer);
   }, [state]);
+
+  useEffect(() => {
+    function checkDayRollover() {
+      const today = getTodayDateString();
+      setState((current) => {
+        if (current.lastHabitDate === today) return current;
+        const days = calcDaysPassed(current.lastHabitDate, today, current.habits);
+        return {
+          ...current,
+          lastHabitDate: today,
+          habits: current.habits.map((h) => rollHabit(h, days)),
+        };
+      });
+    }
+    const interval = window.setInterval(checkDayRollover, 30000);
+    window.addEventListener('focus', checkDayRollover);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', checkDayRollover);
+    };
+  }, []);
 
   useEffect(() => {
     if (!state.timer.running) return undefined;
@@ -137,6 +193,29 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, tasks: [task, ...current.tasks] }));
     setToast('Task added to your day');
   }, []);
+  const updateTask = useCallback((id: string, title: string, project?: string, priority?: Task['priority']) => {
+    setState((current) => ({
+      ...current,
+      tasks: current.tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              title: title.trim() || task.title,
+              project: project ?? task.project,
+              priority: priority ?? task.priority,
+            }
+          : task
+      ),
+    }));
+    setToast('Task updated');
+  }, []);
+  const deleteTask = useCallback((id: string) => {
+    setState((current) => ({
+      ...current,
+      tasks: current.tasks.filter((task) => task.id !== id),
+    }));
+    setToast('Task deleted');
+  }, []);
   const addTaskList = useCallback((name: string) => {
     const list: TaskList = { id: `list-${Date.now()}`, name };
     setState((current) => current.taskLists.some((item) => item.name.toLowerCase() === name.toLowerCase())
@@ -153,11 +232,48 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, notes: [note, ...current.notes] }));
     setToast('Note saved to your library');
   }, []);
+  const updateNote = useCallback((id: string, title: string, body: string) => {
+    setState((current) => ({
+      ...current,
+      notes: current.notes.map((note) =>
+        note.id === id
+          ? {
+              ...note,
+              title: title.trim() || note.title,
+              excerpt: body.trim() || note.excerpt,
+              updated: 'Just now',
+            }
+          : note
+      ),
+    }));
+    setToast('Note updated');
+  }, []);
+  const deleteNote = useCallback((id: string) => {
+    setState((current) => ({
+      ...current,
+      notes: current.notes.filter((note) => note.id !== id),
+    }));
+    setToast('Note deleted');
+  }, []);
   const addProject = useCallback((name: string) => {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `project-${Date.now()}`;
     const project: Project = { id: `${slug}-${Date.now()}`, name, sublabel: '0 files', nextBlock: 'Plan a first block', hours: 0, progress: 0, files: '0 of 0 files', due: 'Not set', status: 'Needs time' };
     setState((current) => ({ ...current, projects: [project, ...current.projects] }));
     setToast(`${name} added to projects`);
+  }, []);
+  const updateProject = useCallback((id: string, name: string) => {
+    setState((current) => ({
+      ...current,
+      projects: current.projects.map((p) => (p.id === id ? { ...p, name } : p)),
+    }));
+    setToast('Project updated');
+  }, []);
+  const deleteProject = useCallback((id: string) => {
+    setState((current) => ({
+      ...current,
+      projects: current.projects.filter((p) => p.id !== id),
+    }));
+    setToast('Project deleted');
   }, []);
   const addFocusPlanBlock = useCallback((block: FocusPlanAddition) => {
     setState((current) => current.focusPlanAdditions.some((item) => item.id === block.id)
@@ -182,6 +298,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const toggleHabit = useCallback((id: string) => {
     setState((current) => ({
       ...current,
+      lastHabitDate: getTodayDateString(),
       habits: current.habits.map((habit) => {
         if (habit.id !== id) return habit;
         const history = habit.history.slice();
@@ -230,9 +347,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<DashboardContextValue>(() => ({
-    ...state, addTask, addTaskList, deleteTaskList, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule,
+    ...state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule,
     toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast,
-  }), [state, addTask, addTaskList, deleteTaskList, addNote, addProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
+  }), [state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }

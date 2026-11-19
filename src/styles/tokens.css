@@ -11,13 +11,53 @@
   --text: #E2D9D0;
   --muted: #717171;
   --dim: #555452;
+  --amber: #22E33E;
+  --burnt: #0DA82E;
+  --brown: #064E18;
+  --slate: #627C7B;
+  --amber-soft: rgba(34, 227, 62, 0.15);
+  --amber-rgb: 34, 227, 62;
+  --burnt-rgb: 13, 168, 46;
+  --brown-rgb: 6, 78, 24;
+  --accent-hi: #7CF28C;
+  --accent-hi-rgb: 124, 242, 140;
+  --accent-pale-rgb: 190, 255, 200;
+  --accent-glint-rgb: 225, 255, 230;
+  --accent-glint: #E9FFEC;
+  --accent-paper: #EDFFEF;
+  --accent-lo: #17B93A;
+  --accent-deep: #0B7A24;
+  --accent-cap: #12A832;
+  --accent-mid: #3ED957;
+  --accent-mid-rgb: 18, 140, 44;
+  --accent-dark-rgb: 8, 46, 18;
+  --accent-ink: #04170A;
+  --accent-text: #8FF09C;
+  --accent-warn: #7CF28C;
+  --bubble-hi: #1E4A24;
+  --bubble-lo: #11270F;
+  --bubble2-hi: #173D1C;
+  --bubble2-lo: #0C2110;
+  --art-hi: #152A1B;
+  --art-lo: #0F1710;
+  --orbit-hi: #1B2B20;
+  --orbit-lo: #10160F;
+  --insight-hi: #0B4A1A;
+  --insight-lo: #073D14;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', Inter, sans-serif;
+}
+
+/* Amber theme */
+:root[data-theme='amber'] {
   --amber: #D69B51;
   --burnt: #AF5E1B;
   --brown: #5C2A0D;
-  --slate: #627C7B;
   --amber-soft: rgba(214, 155, 81, 0.15);
-  /* Accent components — every orange/amber surface in app.css is built from
-     these, so the green theme only has to redefine this block. */
   --amber-rgb: 214, 155, 81;
   --burnt-rgb: 175, 94, 27;
   --brown-rgb: 92, 42, 13;
@@ -46,17 +86,9 @@
   --orbit-lo: #17130F;
   --insight-hi: #5C391D;
   --insight-lo: #704011;
-  --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
-  --serif: 'Instrument Serif', Georgia, serif;
-  --sans: 'DM Sans', Inter, sans-serif;
 }
 
-/* Green theme — the Habitly green the user approved for the Zenith logo
-   (sampled from the approved green logo: primary #22E33E). Activated by the
-   Theme color button in the profile dropdown; persisted on the device. */
+/* Green theme */
 :root[data-theme='green'] {
   --amber: #22E33E;
   --burnt: #0DA82E;

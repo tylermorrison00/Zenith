@@ -122,10 +122,51 @@ export function OverviewPage() {
       <Panel className="flow-panel">
         <div className="flow-panel-header"><CardHeading title="Today's flow" detail={hasData ? `${tasks.length} tasks · ${doneTasks.length} done` : 'No blocks planned'} /><div className="flow-header-actions"><span className="flow-legend"><i className="legend-dot legend-dot--amber" />Focus <i className="legend-dot" />Meeting <i className="legend-dot legend-dot--break" />Break</span><button className="button-outline" onClick={() => navigate('/focus')}>Open planner <ArrowRight size={12} /></button></div></div>
         {tasks.length > 0
-          ? <div className="flow-chain">{tasks.slice(0, 6).map((task, index) => <div className={`flow-node flow-node--${task.done ? 'done' : index === 0 ? 'active' : 'normal'}`} key={task.id}>
-            <span className="flow-node-connector"><i /></span><div className="flow-node-card"><span className="flow-node-dot" /><strong>{task.title}</strong><small>{task.due}</small>{!task.done && index === 0 && <><ProgressBar value={0} /><span className="flow-remaining">Not started</span></>}</div>
-            {index < Math.min(tasks.length, 6) - 1 && <span className={`flow-connector flow-connector--${task.done ? 'done' : 'normal'}`} />}
-          </div>)}</div>
+          ? <div className="flow-chain-wrap">{tasks.slice(0, 6).map((task, index) => {
+            const isDone = task.done;
+            const activeIdx = tasks.findIndex(t => !t.done);
+            const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
+            const isTop = (index % 2 === 0);
+            const types = ["focus", "focus", "meeting", "break", "focus", "break"];
+            const cat = isDone ? "done" : isActive ? "focus" : types[index % types.length];
+            return (
+              <React.Fragment key={task.id}>
+                <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
+                  <div className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`} onClick={() => navigate('/focus')}>
+                    {index > 0 && <span className="flow-pin flow-pin--left" />}
+                    {index < Math.min(tasks.length, 6) - 1 && <span className="flow-pin flow-pin--right" />}
+                    <div className="flow-card-head">
+                      <span className={`flow-type-dot flow-type-dot--${cat}`} />
+                      <span className="flow-card-title">{task.title}</span>
+                      {isDone ? <span className="flow-check-badge"><Check size={10} /></span> : <span className="flow-card-menu-dots">···</span>}
+                    </div>
+                    {isActive && (
+                      <>
+                        <div className="flow-progress-bar">
+                          <div className="flow-progress-bar-fill" style={{ width: '48%' }} />
+                        </div>
+                        <div className="flow-card-footer">
+                          <span className="flow-time-left">In progress</span>
+                          <span className="flow-task-counter">{`${doneTasks.length} of ${tasks.length} tasks`}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {index < Math.min(tasks.length, 6) - 1 && (
+                  <div className="flow-connector-wrap">
+                    <svg className="flow-connector-svg" viewBox="0 0 46 140">
+                      <path
+                        d={isTop ? "M 0 32 C 23 32, 23 92, 46 92" : "M 0 92 C 23 92, 23 32, 46 32"}
+                        className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'}`}
+                      />
+                    </svg>
+                    <button className="flow-curve-btn" onClick={(e) => { e.stopPropagation(); navigate('/focus'); }}>+</button>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}</div>
           : <div className="library-no-results">Nothing on the flow yet — add a task to plan your day.</div>}
       </Panel>
 
@@ -136,14 +177,7 @@ export function OverviewPage() {
         <button className="overview-stat" onClick={() => notify('No meetings scheduled')}><span>Meetings</span><strong>0h</strong><small>—</small><span className="overview-stat-icon"><Clock3 size={13} /></span></button>
       </div>
 
-      <Panel className="projects-table-panel">
-        <div className="projects-table-heading"><div><CardHeading title="Projects" detail="Sorted by who needs it most" /></div><button className="button-quiet" onClick={() => navigate('/projects')}>View all projects <SquareArrowOutUpRight size={12} /></button></div>
-        <div className="table-wrap"><table className="overview-project-table"><thead><tr><th>Project</th><th>Next block</th><th>This week</th><th>Progress</th><th>Files</th><th>Due</th><th>Status</th></tr></thead><tbody>{projects.map((project) => <tr key={project.id} className="clickable-row" onClick={() => navigate(project.id === 'brand-refresh' ? '/projects/brand-refresh' : '/projects')}>
-          <td><span className="table-project"><FolderGlyph active={project.id === 'zenith'} /><span><strong>{project.name}</strong><small>{project.sublabel}</small></span></span></td>
-          <td>{project.nextBlock}</td><td>{project.hours.toFixed(1)}h</td><td><span className="table-progress-cell"><ProgressBar value={project.progress} /><small>{project.progress}%</small></span></td><td>{project.files}</td><td>{project.due}</td><td><StatusChip status={project.status} /></td>
-        </tr>)}</tbody></table></div>
-        {!projects.length && <p className="projects-empty-filter">No projects yet — create your first project.</p>}
-      </Panel>
+      
 
       <QuickAddModal type={addType} onClose={() => setAddType(null)} />
     </div>;

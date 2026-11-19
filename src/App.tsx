@@ -28,6 +28,7 @@ function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; 
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/focus" element={<FocusPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<BrandRefreshPage />} />
           <Route path="/projects/brand-refresh" element={<BrandRefreshPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="*" element={<OverviewPage />} />

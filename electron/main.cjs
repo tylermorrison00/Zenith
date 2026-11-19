@@ -9,7 +9,8 @@
 // on the user's machine (the old zip + `npm install` + `npm run build` flow
 // could never run there, so updates silently did nothing). The Zenith repo is
 // public, so no token is needed.
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
+app.setAppUserModelId('com.zenith.app');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const https = require('https');
@@ -170,7 +171,7 @@ function createWindow() {
     autoHideMenuBar: true,
     // .ico is the Windows installer/window icon; Linux cannot load .ico, so
     // use the PNG twin there (Windows behaviour unchanged).
-    icon: path.join(APP_ROOT, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+    icon: path.join(APP_ROOT, 'build', process.platform === 'win32' ? 'icon-green.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -208,6 +209,52 @@ ipcMain.handle('window-maximize-toggle', () => {
 });
 ipcMain.handle('window-close', () => { if (win) win.close(); });
 ipcMain.handle('window-is-maximized', () => (win ? win.isMaximized() : false));
+
+function getThemeIconPath(themeName) {
+  const icoFile = `icon-${themeName}.ico`;
+  const p = path.join(APP_ROOT, 'build', icoFile);
+  if (fs.existsSync(p)) return p;
+  return path.join(APP_ROOT, 'build', 'icon.ico');
+}
+
+function updateShortcutsIcon(icoPath) {
+  if (process.platform !== 'win32') return;
+  const escaped = icoPath.replace(/\\/g, '\\\\');
+  const script = `
+    $ws = New-Object -ComObject WScript.Shell
+    $paths = @(
+      Join-Path ([Environment]::GetFolderPath("Desktop")) "Zenith.lnk",
+      Join-Path ([Environment]::GetFolderPath("CommonDesktop")) "Zenith.lnk",
+      Join-Path ([Environment]::GetFolderPath("Programs")) "Zenith\\Zenith.lnk"
+    )
+    foreach ($p in $paths) {
+      if (Test-Path $p) {
+        try {
+          $s = $ws.CreateShortcut($p)
+          $s.IconLocation = "${escaped},0"
+          $s.Save()
+        } catch { }
+      }
+    }
+  `;
+  const psExe = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  try {
+    spawn(psExe, ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, stdio: 'ignore' }).unref();
+  } catch {}
+}
+
+ipcMain.handle('set-theme-icon', (event, themeName) => {
+  if (!win || !themeName) return false;
+  try {
+    const icoPath = getThemeIconPath(themeName);
+    if (fs.existsSync(icoPath)) {
+      win.setIcon(icoPath);
+      updateShortcutsIcon(icoPath);
+      return true;
+    }
+  } catch {}
+  return false;
+});
 
 ipcMain.handle('get-app-version', () => {
   try { return JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8')).version || app.getVersion(); }
@@ -375,8 +422,10 @@ ipcMain.handle('update-install', async () => {
   } catch (e) {
     return { ok: false, message: 'Could not prepare the update: ' + String(e.message || e) };
   }
+  const psExe = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
   try {
-    spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    const child = spawn(psExe, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.unref();
   } catch (e) {
     return { ok: false, message: 'Could not start the installer: ' + String(e.message || e) };
   }

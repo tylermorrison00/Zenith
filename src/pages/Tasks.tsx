@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, Folder, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Folder, GripDiagonal, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, Panel, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
@@ -11,12 +11,14 @@ type Priority = Task['priority'];
 const ALL_LISTS = 'all';
 
 export function TasksPage() {
-  const { tasks, taskLists, toggleTask, addTask, addTaskList, deleteTaskList, notify } = useDashboard();
+  const { tasks, taskLists, toggleTask, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, notify } = useDashboard();
   const [filter, setFilter] = useState<TaskFilter>('All');
   const [selectedList, setSelectedList] = useState<string>(ALL_LISTS);
   const [addOpen, setAddOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [quickTitle, setQuickTitle] = useState('');
+  const [quickPriority, setQuickPriority] = useState<Priority>('normal');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const openCount = tasks.filter((t) => !t.done).length;
   const doneCount = tasks.filter((t) => t.done).length;
@@ -49,7 +51,7 @@ export function TasksPage() {
     event.preventDefault();
     const title = quickTitle.trim();
     if (!title) return;
-    addTask(title, selectedListName ?? taskLists[0]?.name ?? 'Personal');
+    addTask(title, selectedListName ?? taskLists[0]?.name ?? 'Personal', quickPriority);
     setQuickTitle('');
   }
 
@@ -117,9 +119,9 @@ export function TasksPage() {
 
         <Panel className="tasks-panel">
           <div className="tasks-panel-head">
-            <CardHeading title={selectedListName ?? 'All tasks'} detail={selectedListName ? `Tasks in ${selectedListName}` : 'Every list, newest first'} />
+            <CardHeading title={selectedListName ?? 'All tasks'} />
             <div className="projects-filter-tabs" aria-label="Task filters">
-              {(['All', 'Open', 'Done'] as const).map((item) => (
+              {(['All', 'Done'] as const).map((item) => (
                 <button key={item} className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>
               ))}
             </div>
@@ -132,20 +134,30 @@ export function TasksPage() {
               value={quickTitle}
               onChange={(event) => setQuickTitle(event.target.value)}
             />
+            <div className="tasks-quick-priority" role="group" aria-label="Task priority">
+              {(['low', 'normal', 'high'] as Priority[]).map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  className={quickPriority === item ? 'is-active' : ''}
+                  onClick={() => setQuickPriority(item)}
+                >
+                  {item.charAt(0).toUpperCase() + item.slice(1)}
+                </button>
+              ))}
+            </div>
             <button type="submit" className="button-light tasks-quick-add-btn" disabled={!quickTitle.trim()}><Plus size={13} /> Add task</button>
           </form>
 
           <div className="tasks-list">
             {visible.map((task) => (
-              <button key={task.id} className="tasks-row" onClick={() => toggleTask(task.id)} aria-pressed={task.done}>
-                <span className={`task-check task-check--lg ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={12} />}</span>
-                <span className="tasks-row-copy">
-                  <strong className={task.done ? 'is-done-text' : ''}>{task.title}</strong>
-                  <small>{task.project} · {task.due}</small>
-                </span>
-                {task.priority === 'high' && !task.done && <TinyPill tone="amber">High</TinyPill>}
-                {task.done && <TinyPill>Done</TinyPill>}
-              </button>
+              <TaskRowItem
+                key={task.id}
+                task={task}
+                onToggle={() => toggleTask(task.id)}
+                onEdit={() => setEditingTask(task)}
+                onDelete={() => deleteTask(task.id)}
+              />
             ))}
             {!visible.length && (
               <div className="tasks-empty">
@@ -156,6 +168,18 @@ export function TasksPage() {
           </div>
         </Panel>
       </div>
+
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          taskLists={taskLists}
+          onClose={() => setEditingTask(null)}
+          onSubmit={(title, project, priority) => {
+            updateTask(editingTask.id, title, project, priority);
+            setEditingTask(null);
+          }}
+        />
+      )}
 
       {addOpen && (
         <AddTaskDialog
@@ -227,6 +251,170 @@ function AddTaskDialog({ lists, initialList, onClose, onSubmit }: {
         <div className="modal-actions">
           <button type="button" className="button-quiet" onClick={onClose}>Cancel</button>
           <button type="submit" className="button-light">Save task</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function TaskRowItem({
+  task,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  task: Task;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  return (
+    <div
+      className="task-card-wrap"
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 6,
+        background: 'rgba(255, 255, 255, 0.025)',
+        border: '1px solid rgba(226, 217, 208, 0.08)',
+        borderRadius: 10,
+        transition: 'background 0.15s ease, border-color 0.15s ease',
+      }}
+    >
+      <button
+        className="tasks-row"
+        onClick={onToggle}
+        aria-pressed={task.done}
+        style={{
+          width: '100%',
+          padding: '11px 48px 11px 12px',
+          border: 0,
+          background: 'transparent',
+          borderRadius: 10,
+          minHeight: 52,
+        }}
+      >
+        <span className={`task-check task-check--lg ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={12} />}</span>
+        <span className="tasks-row-copy">
+          <strong className={task.done ? 'is-done-text' : ''}>{task.title}</strong>
+          <small>{task.project} · {task.due}</small>
+        </span>
+        {task.priority === 'high' && !task.done && <TinyPill tone="amber">High</TinyPill>}
+        {task.done && <TinyPill>Done</TinyPill>}
+      </button>
+      <div className="habit-card-menu-wrap" ref={menuRef} style={{ position: 'absolute', top: 6, right: 8 }}>
+        <button
+          type="button"
+          className="habit-card-menu-btn"
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label={`Actions for ${task.title}`}
+        >
+          <GripDiagonal size={14} />
+        </button>
+        {menuOpen && (
+          <div className="habit-card-menu" role="menu" aria-label={`Actions for ${task.title}`}>
+            <button
+              className="habit-action"
+              role="menuitem"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(); }}
+            >
+              <Pencil size={13} /> Edit
+            </button>
+            <button
+              className="habit-action"
+              role="menuitem"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EditTaskDialog({
+  task,
+  taskLists,
+  onClose,
+  onSubmit,
+}: {
+  task: Task;
+  taskLists: { id: string; name: string }[];
+  onClose: () => void;
+  onSubmit: (title: string, project: string, priority: Task['priority']) => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [project, setProject] = useState(task.project);
+  const [priority, setPriority] = useState<Task['priority']>(task.priority);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) { if (event.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const t = title.trim();
+    if (!t) return;
+    onSubmit(t, project, priority);
+  }
+
+  return (
+    <div className="modal-scrim" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="modal-card" role="dialog" aria-modal="true" onSubmit={submit}>
+        <div className="modal-head">
+          <div><div className="eyebrow">Task details</div><h2>Edit task</h2></div>
+          <button type="button" className="icon-circle" aria-label="Close" onClick={onClose}><X size={15} /></button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '14px 0' }}>
+          <label className="form-label">Task title
+            <input className="form-control" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task title" />
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label className="form-label">List
+              <select className="form-control" value={project} onChange={(e) => setProject(e.target.value)}>
+                {taskLists.map((l) => (
+                  <option key={l.id} value={l.name}>{l.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-label">Priority
+              <select className="form-control" value={priority} onChange={(e) => setPriority(e.target.value as Task['priority'])}>
+                <option value="normal">Normal</option>
+                <option value="high">High priority</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button type="button" className="button-quiet" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button-light" disabled={!title.trim()}>Save changes</button>
         </div>
       </form>
     </div>

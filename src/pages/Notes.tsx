@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react';
-import { FileText, Plus, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, GripDiagonal, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { CardHeading, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { useDashboard } from '../state/DashboardContext';
+import type { Note } from '../data/seed';
 
 export function NotesPage() {
-  const { notes, notify } = useDashboard();
+  const { notes, updateNote, deleteNote, notify } = useDashboard();
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   const projectCount = useMemo(() => new Set(notes.map((n) => n.project)).size, [notes]);
   const visible = useMemo(() => {
@@ -40,25 +42,21 @@ export function NotesPage() {
 
       <div className="notes-layout">
         <Panel className="notes-list-panel">
-          <CardHeading title="All notes" detail="Newest first · tap to preview" />
+          <CardHeading title="All notes" />
           <div className="notes-search">
             <Search size={14} className="search-icon" />
             <input aria-label="Search notes" placeholder="Search notes…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <div className="notes-list">
             {visible.map((note) => (
-              <button
+              <NoteRowItem
                 key={note.id}
-                className={`notes-row ${selected?.id === note.id ? 'is-selected' : ''}`}
-                onClick={() => setSelectedId(note.id)}
-              >
-                <span className="notes-row-icon"><FileText size={15} /></span>
-                <span className="notes-row-copy">
-                  <strong>{note.title}</strong>
-                  <small>{note.excerpt}</small>
-                  <span className="notes-row-meta">{note.project} · {note.updated}</span>
-                </span>
-              </button>
+                note={note}
+                isSelected={selected?.id === note.id}
+                onSelect={() => setSelectedId(note.id)}
+                onEdit={() => setEditingNote(note)}
+                onDelete={() => deleteNote(note.id)}
+              />
             ))}
             {!visible.length && <div className="tasks-empty">No notes match that search.</div>}
           </div>
@@ -67,14 +65,11 @@ export function NotesPage() {
         <Panel className="notes-preview-panel">
           {selected ? (
             <>
-              <div className="notes-preview-top">
-                <TinyPill tone="amber">{selected.project}</TinyPill>
+              <div className="notes-preview-top" style={{ justifyContent: 'flex-end' }}>
                 <span className="notes-preview-updated">{selected.updated}</span>
               </div>
               <h2 className="notes-preview-title">{selected.title}</h2>
               <p className="notes-preview-body">{selected.excerpt}</p>
-              <p className="notes-preview-hint">This is the same note stored in your workspace library — new notes you add here appear in search and on Overview too.</p>
-              <button className="button-outline" onClick={() => notify(`${selected.title} · ${selected.project}`)}>Open in project</button>
             </>
           ) : (
             <div className="tasks-empty">Select a note to preview it here, or add a new one.</div>
@@ -82,7 +77,152 @@ export function NotesPage() {
         </Panel>
       </div>
 
+      {editingNote && (
+        <EditNoteDialog
+          note={editingNote}
+          onClose={() => setEditingNote(null)}
+          onSubmit={(title, body) => {
+            updateNote(editingNote.id, title, body);
+            setEditingNote(null);
+          }}
+        />
+      )}
+
       <QuickAddModal type={addOpen ? 'note' : null} onClose={() => setAddOpen(false)} />
+    </div>
+  );
+}
+
+function NoteRowItem({
+  note,
+  isSelected,
+  onSelect,
+  onEdit,
+  onDelete,
+}: {
+  note: Note;
+  isSelected: boolean;
+  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+      <button
+        className={`notes-row ${isSelected ? 'is-selected' : ''}`}
+        onClick={onSelect}
+        style={{ width: '100%', paddingRight: 48 }}
+      >
+        <span className="notes-row-icon"><FileText size={15} /></span>
+        <span className="notes-row-copy">
+          <strong>{note.title}</strong>
+          <small>{note.excerpt}</small>
+        </span>
+      </button>
+      <div className="habit-card-menu-wrap" ref={menuRef} style={{ position: 'absolute', top: 6, right: 8 }}>
+        <button
+          type="button"
+          className="habit-card-menu-btn"
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((open) => !open); }}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label={`Actions for ${note.title}`}
+        >
+          <GripDiagonal size={14} />
+        </button>
+        {menuOpen && (
+          <div className="habit-card-menu" role="menu" aria-label={`Actions for ${note.title}`}>
+            <button
+              className="habit-action"
+              role="menuitem"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(); }}
+            >
+              <Pencil size={13} /> Edit
+            </button>
+            <button
+              className="habit-action"
+              role="menuitem"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
+            >
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EditNoteDialog({
+  note,
+  onClose,
+  onSubmit,
+}: {
+  note: Note;
+  onClose: () => void;
+  onSubmit: (title: string, body: string) => void;
+}) {
+  const [title, setTitle] = useState(note.title);
+  const [body, setBody] = useState(note.excerpt);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) { if (event.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const t = title.trim();
+    if (!t) return;
+    onSubmit(t, body);
+  }
+
+  return (
+    <div className="modal-scrim" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="modal-card" role="dialog" aria-modal="true" onSubmit={submit}>
+        <div className="modal-head">
+          <div><div className="eyebrow">Note details</div><h2>Edit note</h2></div>
+          <button type="button" className="icon-circle" aria-label="Close" onClick={onClose}><X size={15} /></button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '14px 0' }}>
+          <label className="form-label">Note title
+            <input className="form-control" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Note title" />
+          </label>
+          <label className="form-label">Content
+            <textarea
+              className="form-control"
+              style={{ minHeight: 120, resize: 'vertical' }}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Write your note…"
+            />
+          </label>
+        </div>
+        <div className="modal-actions">
+          <button type="button" className="button-quiet" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button-light" disabled={!title.trim()}>Save changes</button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -45,4 +45,5 @@ contextBridge.exposeInMainWorld('zenith', {
     ipcRenderer.on('window-maximized-changed', listener);
     return () => ipcRenderer.removeListener('window-maximized-changed', listener);
   },
+  setThemeIcon: (theme) => ipcRenderer.invoke('set-theme-icon', theme),
 });

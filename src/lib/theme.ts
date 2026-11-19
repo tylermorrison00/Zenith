@@ -15,20 +15,20 @@ import zenithLogoPurple from '../assets/zenith-logo-purple.png';
 // stored in localStorage like the rest of Zenith's browser-only state, and
 // applied as `data-theme` on <html>; the palettes themselves live in
 // styles/tokens.css.
-export type ThemeName = 'amber' | 'green' | 'yellow' | 'blue' | 'purple';
+export type ThemeName = 'green' | 'amber' | 'yellow' | 'blue' | 'purple';
 
-export const THEME_ORDER: ThemeName[] = ['amber', 'green', 'yellow', 'blue', 'purple'];
+export const THEME_ORDER: ThemeName[] = ['green', 'amber', 'yellow', 'blue', 'purple'];
 
 export function nextTheme(theme: ThemeName): ThemeName {
   const index = THEME_ORDER.indexOf(theme);
-  return THEME_ORDER[(index + 1) % THEME_ORDER.length] ?? 'amber';
+  return THEME_ORDER[(index + 1) % THEME_ORDER.length] ?? 'green';
 }
 
-const THEME_KEY = 'zenith-theme-v1';
+const THEME_KEY = 'zenith-theme-v2';
 
 export function readTheme(): ThemeName {
-  const stored = readStorage<ThemeName>(THEME_KEY, 'amber');
-  return stored === 'green' || stored === 'yellow' || stored === 'blue' || stored === 'purple' ? stored : 'amber';
+  const stored = readStorage<ThemeName>(THEME_KEY, 'green');
+  return stored === 'amber' || stored === 'yellow' || stored === 'blue' || stored === 'purple' ? stored : 'green';
 }
 
 export function applyTheme(theme: ThemeName): void {
@@ -36,18 +36,21 @@ export function applyTheme(theme: ThemeName): void {
     document.documentElement.dataset.theme = theme;
   }
   writeStorage(THEME_KEY, theme);
+  if (typeof window !== 'undefined' && window.zenith?.setThemeIcon) {
+    void window.zenith.setThemeIcon(theme);
+  }
 }
 
 // The Z logo follows the theme: the header brand mark and the onboarding
 // orbit center both render the current theme's PNG.
 export const THEME_LOGOS: Record<ThemeName, string> = {
-  amber: zenithLogoAmber,
   green: zenithLogoGreen,
+  amber: zenithLogoAmber,
   yellow: zenithLogoYellow,
   blue: zenithLogoBlue,
   purple: zenithLogoPurple,
 };
 
 export function themeLogo(theme: ThemeName): string {
-  return THEME_LOGOS[theme] ?? THEME_LOGOS.amber;
+  return THEME_LOGOS[theme] ?? THEME_LOGOS.green;
 }
