@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Folder, GripDiagonal, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { ListChecks } from '../lib/icons';
+import { Check, Folder, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { GripDiagonal, ListChecks } from '../lib/icons';
 import { CardHeading, Panel, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
 import type { Task } from '../data/seed';

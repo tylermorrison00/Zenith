@@ -47,7 +47,10 @@ jobs:
       - name: Prepare APK Output
         run: |
           mkdir -p release-apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk release-apk/Zenith.apk
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          echo "Found APK at: $APK_PATH"
+          cp "$APK_PATH" release-apk/Zenith.apk
+          ls -la release-apk/Zenith.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

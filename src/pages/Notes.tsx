@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, GripDiagonal, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { GripDiagonal } from '../lib/icons';
 import { CardHeading, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { useDashboard } from '../state/DashboardContext';
