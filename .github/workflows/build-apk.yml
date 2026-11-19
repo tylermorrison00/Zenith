@@ -67,7 +67,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.1 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.1" \
-            --notes "Zenith Android APK build with official Zenith icon and mobile layout fixes. Download Zenith.apk to install directly on your Android mobile device." || \
-          gh release upload android-v1.0.1 release-apk/Zenith.apk --clobber
+          gh release create android-v1.0.2 release-apk/Zenith.apk \
+            --title "Zenith Android v1.0.2" \
+            --notes "Zenith Android Mobile Update: Native mobile bottom navigation, responsive mobile layout, official Zenith icon, in-app updates, and theme polish. Download Zenith.apk to update." || \
+          gh release upload android-v1.0.2 release-apk/Zenith.apk --clobber

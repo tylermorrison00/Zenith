@@ -6,7 +6,7 @@ import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { UpdateModal } from './UpdateModal';
-import { nextTheme, type ThemeName } from '../lib/theme';
+import { nextTheme, themeLogo, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
 export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOut?: () => void; theme?: ThemeName; onToggleTheme?: () => void }) {
@@ -60,6 +60,10 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   return (
     <>
     <header className="topbar">
+      <div className="mobile-header-brand">
+        <img src={themeLogo(theme)} alt="Zenith" className="mobile-header-logo" />
+        <span className="mobile-header-title">Zenith</span>
+      </div>
       <nav className="main-nav" aria-label="Main navigation">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className={`nav-link ${active === to ? 'is-active' : ''}`}>
@@ -92,7 +96,26 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
         </div>
       </div>
     </header>
-      <UpdateModal open={updateOpen} onClose={() => setUpdateOpen(false)} />
+
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+      {nav.slice(0, 5).map(({ to, label, icon: Icon }) => {
+        const isCurrent = active === to;
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            className={`mobile-bottom-item ${isCurrent ? 'is-active' : ''}`}
+          >
+            <span className="mobile-bottom-icon-wrap">
+              <Icon size={20} strokeWidth={isCurrent ? 2.2 : 1.8} />
+            </span>
+            <span className="mobile-bottom-label">{label}</span>
+          </NavLink>
+        );
+      })}
+    </nav>
+
+    <UpdateModal open={updateOpen} onClose={() => setUpdateOpen(false)} />
     </>
   );
 }

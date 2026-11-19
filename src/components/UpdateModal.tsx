@@ -14,6 +14,20 @@ import { Check, Download, RefreshCw, X } from 'lucide-react';
 // The new flow has a 10s timeout in main, a 12s safety timeout here, and
 // progress events for the whole download.
 
+const CURRENT_APP_VERSION = '1.0.2';
+
+function compareSemver(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+}
+
 type Phase =
   | 'checking'
   | 'up-to-date'
@@ -29,8 +43,9 @@ function formatMB(bytes: number): string {
 
 export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('checking');
-  const [currentVersion, setCurrentVersion] = useState('');
+  const [currentVersion, setCurrentVersion] = useState(CURRENT_APP_VERSION);
   const [latestVersion, setLatestVersion] = useState('');
+  const [apkDownloadUrl, setApkDownloadUrl] = useState('');
   const [progress, setProgress] = useState(0);
   const [received, setReceived] = useState(0);
   const [total, setTotal] = useState(0);
@@ -44,14 +59,54 @@ export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => v
     setProgress(0);
     setReceived(0);
     setTotal(0);
+
     if (!window.zenith) {
-      // Browser / dev server: no desktop bridge, nothing real to check.
-      setPhase('up-to-date');
+      // Mobile / Web mode: check GitHub Releases directly
+      try {
+        const res = await fetch('https://api.github.com/repos/tylermorrison00/Zenith/releases');
+        if (!res.ok) {
+          setError('Could not connect to update server. Check your connection.');
+          setPhase('error');
+          return;
+        }
+        const releases = await res.json();
+        let matchedRelease: any = null;
+        let apkAsset: any = null;
+        for (const rel of releases) {
+          const apk = rel.assets?.find((a: any) => typeof a.name === 'string' && a.name.endsWith('.apk'));
+          if (apk) {
+            matchedRelease = rel;
+            apkAsset = apk;
+            break;
+          }
+        }
+
+        if (!matchedRelease || !apkAsset) {
+          setCurrentVersion(CURRENT_APP_VERSION);
+          setPhase('up-to-date');
+          return;
+        }
+
+        const tag = matchedRelease.tag_name || '';
+        const cleanLatest = tag.replace(/^[a-zA-Z\-_]+/, '');
+        setCurrentVersion(CURRENT_APP_VERSION);
+        setLatestVersion(cleanLatest || tag);
+        setApkDownloadUrl(apkAsset.browser_download_url);
+
+        if (compareSemver(cleanLatest, CURRENT_APP_VERSION) > 0) {
+          setPhase('available');
+        } else {
+          setPhase('up-to-date');
+        }
+      } catch {
+        setError('Could not check for updates. Try again later.');
+        setPhase('error');
+      }
       return;
     }
+
     try {
-      // Renderer-side safety net: even if main ever stalls, the popup
-      // answers within 12s instead of hanging forever.
+      // Desktop Electron flow
       const result = await Promise.race([
         window.zenith.checkUpdate(),
         new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12000)),
@@ -119,7 +174,17 @@ export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => v
   }, [open ]);
 
   async function startDownload() {
-    if (!window.zenith) return;
+    if (!window.zenith) {
+      if (!apkDownloadUrl) return;
+      setPhase('downloading');
+      setProgress(100);
+      try {
+        window.location.href = apkDownloadUrl;
+      } catch {
+        window.open(apkDownloadUrl, '_system');
+      }
+      return;
+    }
     setPhase('downloading');
     setProgress(0);
     setReceived(0);
@@ -186,9 +251,29 @@ export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => v
             <div className="update-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
               <div className="update-progress-fill" style={{ width: `${progress}%` }} />
             </div>
-            <p className="update-sub">
-              {progress}%{total > 0 ? ` · ${formatMB(received)} of ${formatMB(total)}` : received > 0 ? ` · ${formatMB(received)} downloaded` : ''}
-            </p>
+            {!window.zenith ? (
+              <>
+                <p className="update-sub">
+                  Download start ho chuki hai! Notification drawer mein file complete hote hi tap karke install kar lein.
+                </p>
+                <div className="modal-actions" style={{ marginTop: 12 }}>
+                  {apkDownloadUrl && (
+                    <a
+                      href={apkDownloadUrl}
+                      className="auth-submit"
+                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Download size={14} /> Direct APK Link
+                    </a>
+                  )}
+                  <button className="auth-submit auth-submit--ghost" type="button" onClick={onClose}>Done</button>
+                </div>
+              </>
+            ) : (
+              <p className="update-sub">
+                {progress}%{total > 0 ? ` · ${formatMB(received)} of ${formatMB(total)}` : received > 0 ? ` · ${formatMB(received)} downloaded` : ''}
+              </p>
+            )}
           </div>
         )}
 
