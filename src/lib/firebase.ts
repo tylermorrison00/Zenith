@@ -127,6 +127,14 @@ async function applyLocalPersistence(auth: FirebaseAuthLike): Promise<void> {
   }
 }
 
+export function getFirebaseApp(): FirebaseApp | null {
+  if (!isFirebaseConfigured()) {
+    return null;
+  }
+  const existingApps: FirebaseApp[] = getApps();
+  return existingApps.length > 0 ? existingApps[0] : initializeApp(FIREBASE_CONFIG);
+}
+
 /**
  * Initialises (once) and returns the Auth instance plus the Firebase Auth
  * functions, or `null` when Firebase is not configured. Purely synchronous:
@@ -138,8 +146,7 @@ export function getFirebaseAuthToolsSync(): FirebaseAuthTools | null {
     return null;
   }
   if (!cachedTools) {
-    const existingApps: FirebaseApp[] = getApps();
-    const app = existingApps.length > 0 ? existingApps[0] : initializeApp(FIREBASE_CONFIG);
+    const app = getFirebaseApp()!;
     cachedTools = {
       auth: getAuth(app),
       createUserWithEmailAndPassword,

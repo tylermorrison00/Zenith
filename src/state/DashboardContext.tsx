@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { readStorage, writeStorage } from '../lib/storage';
+import { getCurrentAccount } from '../lib/auth';
+import { fetchUserDashboard, saveUserDashboard, subscribeUserDashboard } from '../lib/firestore';
 import { HABIT_HISTORY_DAYS, habitHistory, ritualsSeed, seedHabits, seedNotes, seedProjectFiles, seedProjects, seedTaskLists, seedTasks, streakFromHistory, weekRulesSeed, type FocusPlanAddition, type Habit, type Note, type Project, type ProjectFile, type Task, type TaskList } from '../data/seed';
 
 type ToggleItem = { id: string; title: string; detail: string; on: boolean };
 type StoredTimer = { seconds: number; running: boolean; changedAt: number; sessions: number; progress: number };
-type DashboardState = {
+export type DashboardState = {
   tasks: Task[];
   taskLists: TaskList[];
   notes: Note[];
@@ -142,11 +144,81 @@ const DashboardContext = createContext<DashboardContextValue | null>(null);
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DashboardState>(loadInitialState);
   const [toast, setToast] = useState('');
+  const [userUid, setUserUid] = useState<string | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
 
+  // Sync with Firestore Cloud when signed in
+  useEffect(() => {
+    let unsubscribeSnap: (() => void) | null = null;
+    let cancelled = false;
+
+    async function initCloudSync() {
+      const account = await getCurrentAccount();
+      if (cancelled || !account || account.provider !== 'firebase') return;
+      const uid = account.id;
+      setUserUid(uid);
+
+      // 1. Fetch cloud data for this user
+      const cloudData = await fetchUserDashboard(uid);
+      if (cancelled) return;
+
+      if (cloudData && (cloudData.tasks?.length || cloudData.habits?.length || cloudData.notes?.length)) {
+        // Cloud has existing data -> apply to local state
+        setState((current) => ({
+          ...current,
+          ...cloudData,
+          tasks: cloudData.tasks ?? current.tasks,
+          taskLists: cloudData.taskLists ?? current.taskLists,
+          notes: cloudData.notes ?? current.notes,
+          habits: cloudData.habits ?? current.habits,
+          projects: cloudData.projects ?? current.projects,
+          rituals: cloudData.rituals ?? current.rituals,
+        }));
+      } else {
+        // Cloud is empty for this user! Backup current local state into Firestore
+        const local = readStorage<Partial<DashboardState>>(stateKey, {});
+        if (local && (local.tasks?.length || local.habits?.length || local.notes?.length)) {
+          void saveUserDashboard(uid, local);
+        }
+      }
+
+      // 2. Subscribe to real-time changes
+      const unsub = subscribeUserDashboard(uid, (remote) => {
+        if (cancelled) return;
+        setState((current) => ({
+          ...current,
+          ...remote,
+          tasks: remote.tasks ?? current.tasks,
+          taskLists: remote.taskLists ?? current.taskLists,
+          notes: remote.notes ?? current.notes,
+          habits: remote.habits ?? current.habits,
+          projects: remote.projects ?? current.projects,
+          rituals: remote.rituals ?? current.rituals,
+        }));
+      });
+      if (unsub) unsubscribeSnap = unsub;
+    }
+
+    void initCloudSync();
+
+    return () => {
+      cancelled = true;
+      if (unsubscribeSnap) unsubscribeSnap();
+    };
+  }, []);
+
+  // Save to localStorage immediately, and debounced to Firestore Cloud
   useEffect(() => {
     writeStorage(stateKey, { ...state, timer: undefined });
     writeStorage(timerKey, state.timer);
-  }, [state]);
+
+    if (userUid) {
+      if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = window.setTimeout(() => {
+        void saveUserDashboard(userUid, state);
+      }, 700);
+    }
+  }, [state, userUid]);
 
   useEffect(() => {
     function checkDayRollover() {

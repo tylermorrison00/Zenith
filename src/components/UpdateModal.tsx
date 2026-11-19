@@ -14,7 +14,7 @@ import { Check, Download, RefreshCw, X } from 'lucide-react';
 // The new flow has a 10s timeout in main, a 12s safety timeout here, and
 // progress events for the whole download.
 
-const CURRENT_APP_VERSION = '1.0.2';
+const CURRENT_APP_VERSION = '1.0.3';
 
 function compareSemver(a: string, b: string): number {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
