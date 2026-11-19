@@ -1,11 +1,15 @@
 import os
 import sys
+import site
+
+sys.path.append(site.getusersitepackages())
 
 try:
     from PIL import Image
 except ImportError:
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
+    sys.path.append(site.getusersitepackages())
     from PIL import Image
 
 logo_path = "public/zenith-logo.png"
