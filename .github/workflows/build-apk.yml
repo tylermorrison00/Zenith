@@ -38,6 +38,9 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
+      - name: Generate Official Zenith App Icons
+        run: python3 scripts/generate-icons.py
+
       - name: Build Android Debug APK
         run: |
           cd android
@@ -62,7 +65,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload android-v1.0.0 release-apk/Zenith.apk --clobber || \
-          gh release create android-v1.0.0 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.0" \
-            --notes "Zenith Android APK build. Download Zenith.apk to install directly on your Android mobile device."
+          gh release create android-v1.0.1 release-apk/Zenith.apk \
+            --title "Zenith Android v1.0.1" \
+            --notes "Zenith Android APK build with official Zenith icon and mobile layout fixes. Download Zenith.apk to install directly on your Android mobile device." || \
+          gh release upload android-v1.0.1 release-apk/Zenith.apk --clobber
