@@ -44,25 +44,23 @@ def setup_signing(version_name="1.0.7", version_code=10007):
     content = re.sub(r'versionCode\s+\d+', f'versionCode {version_code}', content)
     content = re.sub(r'versionName\s+"[^"]+"', f'versionName "{version_name}"', content)
 
-    # Add signingConfigs if not present
-    if 'signingConfigs {' not in content:
-        signing_block = """
-    signingConfigs {
-        release {
+    # Add signingConfigs and wire into both debug and release buildTypes
+    signing_and_buildtypes = f"""    signingConfigs {{
+        release {{
             storeFile file('../../keystore/zenith.keystore')
             storePassword 'zenithpass123'
             keyAlias 'zenith'
             keyPassword 'zenithpass123'
-        }
-    }
-"""
-        # Insert before buildTypes
-        if 'buildTypes {' in content:
-            content = content.replace('buildTypes {', signing_block + '\n    buildTypes {')
+        }}
+    }}
+    buildTypes {{
+        debug {{
+            signingConfig signingConfigs.release
+        }}
+        release {{
+            signingConfig signingConfigs.release"""
 
-    # Ensure debug and release both use signingConfigs.release
-    content = re.sub(r'buildTypes\s*\{', 'buildTypes {\n        debug {\n            signingConfig signingConfigs.release\n        }', content, count=1)
-    content = re.sub(r'release\s*\{', 'release {\n            signingConfig signingConfigs.release', content, count=1)
+    content = re.sub(r'buildTypes\s*\{\s*release\s*\{', signing_and_buildtypes, content)
 
     with open(gradle_path, "w", encoding="utf-8") as f:
         f.write(content)
