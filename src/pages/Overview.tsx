@@ -48,7 +48,60 @@ export function OverviewPage() {
     .filter((folder) => `${folder.name} ${folder.detail}`.toLowerCase().includes(folderQuery.toLowerCase())), [folderQuery, projects]);
   const openTasks = tasks.filter((task) => !task.done);
   const doneTasks = tasks.filter((task) => task.done);
+  const doneHabits = habits.filter((h) => h.done);
   const hasData = tasks.length > 0 || projects.length > 0 || habits.length > 0 || timer.sessions > 0;
+
+  const flowItems = useMemo(() => {
+    const list: Array<{
+      id: string;
+      kind: 'habit' | 'task';
+      title: string;
+      subtitle: string;
+      done: boolean;
+      streak?: number;
+      category: string;
+    }> = [];
+
+    // 1. Sab se pehle habits
+    (habits || []).forEach((h) => {
+      list.push({
+        id: h.id,
+        kind: 'habit',
+        title: h.title,
+        subtitle: h.streak > 0 ? `${h.streak} day streak` : 'Daily habit',
+        done: h.done,
+        streak: h.streak,
+        category: 'focus',
+      });
+    });
+
+    // 2. Uske baad tasks
+    (tasks || []).forEach((t, i) => {
+      const types = ['focus', 'meeting', 'break'];
+      list.push({
+        id: t.id,
+        kind: 'task',
+        title: t.title,
+        subtitle: t.project || 'Task',
+        done: t.done,
+        category: types[i % types.length],
+      });
+    });
+
+    return list;
+  }, [habits, tasks]);
+
+  const flowDetail = useMemo(() => {
+    if (!flowItems.length) return 'No blocks planned';
+    const doneCount = flowItems.filter((i) => i.done).length;
+    if (habits.length > 0 && tasks.length > 0) {
+      return `${habits.length} habits · ${tasks.length} tasks (${doneCount} done)`;
+    }
+    if (habits.length > 0) {
+      return `${habits.length} habits · ${doneHabits.length} done`;
+    }
+    return `${tasks.length} tasks · ${doneTasks.length} done`;
+  }, [flowItems, habits.length, tasks.length, doneHabits.length, doneTasks.length]);
   async function toggleAudio() {
     if (audioPlaying) {
       stopAmbientSound();
@@ -120,25 +173,56 @@ export function OverviewPage() {
     </div>
 
       <Panel className="flow-panel">
-        <div className="flow-panel-header"><CardHeading title="Today's flow" detail={hasData ? `${tasks.length} tasks · ${doneTasks.length} done` : 'No blocks planned'} /><div className="flow-header-actions"><span className="flow-legend"><i className="legend-dot legend-dot--amber" />Focus <i className="legend-dot" />Meeting <i className="legend-dot legend-dot--break" />Break</span><button className="button-outline" onClick={() => navigate('/focus')}>Open planner <ArrowRight size={12} /></button></div></div>
-        {tasks.length > 0
-          ? <div className="flow-chain-wrap">{tasks.slice(0, 6).map((task, index) => {
-            const isDone = task.done;
-            const activeIdx = tasks.findIndex(t => !t.done);
+        <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /><div className="flow-header-actions"><span className="flow-legend"><i className="legend-dot legend-dot--amber" />Focus <i className="legend-dot" />Meeting <i className="legend-dot legend-dot--break" />Break</span><button className="button-outline" onClick={() => navigate('/focus')}>Open planner <ArrowRight size={12} /></button></div></div>
+        {flowItems.length > 0
+          ? <div className="flow-chain-wrap">{flowItems.slice(0, 12).map((item, index) => {
+            const isDone = item.done;
+            const activeIdx = flowItems.findIndex((t) => !t.done);
             const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
             const isTop = (index % 2 === 0);
-            const types = ["focus", "focus", "meeting", "break", "focus", "break"];
-            const cat = isDone ? "done" : isActive ? "focus" : types[index % types.length];
+            const cat = isDone ? "done" : isActive ? "focus" : item.category;
             return (
-              <Fragment key={task.id}>
+              <Fragment key={item.id}>
                 <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
-                  <div className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`} onClick={() => navigate('/focus')}>
+                  <div
+                    className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`}
+                    onClick={() => {
+                      if (item.kind === 'habit') {
+                        toggleHabit(item.id);
+                      } else {
+                        navigate('/focus');
+                      }
+                    }}
+                  >
                     {index > 0 && <span className="flow-pin flow-pin--left" />}
-                    {index < Math.min(tasks.length, 6) - 1 && <span className="flow-pin flow-pin--right" />}
+                    {index < Math.min(flowItems.length, 12) - 1 && <span className="flow-pin flow-pin--right" />}
                     <div className="flow-card-head">
                       <span className={`flow-type-dot flow-type-dot--${cat}`} />
-                      <span className="flow-card-title">{task.title}</span>
-                      {isDone ? <span className="flow-check-badge"><Check size={10} /></span> : <span className="flow-card-menu-dots">···</span>}
+                      <span className="flow-card-title">{item.title}</span>
+                      {isDone ? (
+                        <span
+                          className="flow-check-badge"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.kind === 'habit') toggleHabit(item.id);
+                            else toggleTask(item.id);
+                          }}
+                        >
+                          <Check size={10} />
+                        </span>
+                      ) : (
+                        <span
+                          className="flow-card-menu-dots"
+                          onClick={(e) => {
+                            if (item.kind === 'habit') {
+                              e.stopPropagation();
+                              toggleHabit(item.id);
+                            }
+                          }}
+                        >
+                          {item.kind === 'habit' ? '○' : '···'}
+                        </span>
+                      )}
                     </div>
                     {isActive && (
                       <>
@@ -146,14 +230,14 @@ export function OverviewPage() {
                           <div className="flow-progress-bar-fill" style={{ width: '48%' }} />
                         </div>
                         <div className="flow-card-footer">
-                          <span className="flow-time-left">In progress</span>
-                          <span className="flow-task-counter">{`${doneTasks.length} of ${tasks.length} tasks`}</span>
+                          <span className="flow-time-left">{item.kind === 'habit' ? 'Habit in progress' : 'In progress'}</span>
+                          <span className="flow-task-counter">{item.subtitle}</span>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
-                {index < Math.min(tasks.length, 6) - 1 && (
+                {index < Math.min(flowItems.length, 12) - 1 && (
                   <div className="flow-connector-wrap">
                     <svg className="flow-connector-svg" viewBox="0 0 46 140">
                       <path
@@ -161,13 +245,13 @@ export function OverviewPage() {
                         className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'}`}
                       />
                     </svg>
-                    <button className="flow-curve-btn" onClick={(e) => { e.stopPropagation(); navigate('/focus'); }}>+</button>
+                    <button className="flow-curve-btn" onClick={(e) => { e.stopPropagation(); navigate(item.kind === 'habit' ? '/habits' : '/focus'); }}>+</button>
                   </div>
                 )}
               </Fragment>
             );
           })}</div>
-          : <div className="library-no-results">Nothing on the flow yet — add a task to plan your day.</div>}
+          : <div className="library-no-results">Nothing on the flow yet — add a habit or task to plan your day.</div>}
       </Panel>
 
       <div className="overview-stats-row">

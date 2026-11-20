@@ -12,7 +12,7 @@ interface ApkUpdaterPlugin {
 
 const ApkUpdater = registerPlugin<ApkUpdaterPlugin>('ApkUpdater');
 
-const CURRENT_APP_VERSION = '1.0.7';
+const CURRENT_APP_VERSION = '1.0.8';
 
 function compareSemver(a: string, b: string): number {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);

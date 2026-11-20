@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-def setup_signing(version_name="1.0.7", version_code=10007):
+def setup_signing(version_name="1.0.8", version_code=10008):
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     keystore_dir = os.path.join(repo_root, "keystore")
     os.makedirs(keystore_dir, exist_ok=True)
@@ -67,6 +67,6 @@ def setup_signing(version_name="1.0.7", version_code=10007):
     print("Patched android/app/build.gradle with persistent signing and version", version_name)
 
 if __name__ == "__main__":
-    v_name = sys.argv[1] if len(sys.argv) > 1 else "1.0.7"
-    v_code = int(sys.argv[2]) if len(sys.argv) > 2 else 10007
+    v_name = sys.argv[1] if len(sys.argv) > 1 else "1.0.8"
+    v_code = int(sys.argv[2]) if len(sys.argv) > 2 else 10008
     setup_signing(v_name, v_code)
