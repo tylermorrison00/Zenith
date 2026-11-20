@@ -1398,69 +1398,6 @@
   opacity: 0.35 !important;
 }
 
-.flow-drop-beam-indicator {
-  position: absolute;
-  top: 20px;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 3.5px;
-  background: var(--amber);
-  border-radius: 999px;
-  box-shadow: 0 0 12px var(--amber), 0 0 25px rgba(var(--amber-rgb), 0.75);
-  animation: beamGlow 0.5s infinite alternate ease-in-out;
-  pointer-events: none;
-  z-index: 50;
-}
-
-.flow-drop-beam-indicator::before,
-.flow-drop-beam-indicator::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 7px;
-  height: 7px;
-  background: var(--amber);
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--amber);
-}
-
-.flow-drop-beam-indicator::before {
-  top: -3px;
-}
-
-.flow-drop-beam-indicator::after {
-  bottom: -3px;
-}
-
-.flow-drop-beam-indicator--start {
-  position: relative;
-  flex: 0 0 4px;
-  margin-right: 14px;
-  height: 90px;
-  align-self: center;
-}
-
-.flow-drop-beam-indicator--end {
-  position: relative;
-  flex: 0 0 4px;
-  margin-left: 14px;
-  height: 90px;
-  align-self: center;
-}
-
-@keyframes beamGlow {
-  0% {
-    opacity: 0.75;
-    transform: translateX(-50%) scaleY(0.94);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) scaleY(1.05);
-  }
-}
-
 .flow-curve-line--reconnecting {
   animation: flowLineRebound 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }

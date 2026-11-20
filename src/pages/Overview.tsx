@@ -61,7 +61,7 @@ export function OverviewPage() {
   });
 
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [reconnectedKey, setReconnectedKey] = useState<string | null>(null);
 
   const dragRef = useRef<{
@@ -72,7 +72,8 @@ export function OverviewPage() {
     startY: number;
     cardEl: HTMLElement;
     hasMoved: boolean;
-    slot: number;
+    currentHoverIndex: number;
+    staticSlotCenters: number[];
   } | null>(null);
 
   const rawItems = useMemo(() => {
@@ -221,7 +222,7 @@ export function OverviewPage() {
     });
   };
 
-  const applySlotMove = (sourceKey: string, slot: number, isDone: boolean) => {
+  const applyReorder = (sourceKey: string, targetIndex: number, isDone: boolean) => {
     setOrderKeys((prev) => {
       const itemMap = new Map<string, typeof rawItems[0]>();
       rawItems.forEach((i) => itemMap.set(i.key, i));
@@ -254,16 +255,15 @@ export function OverviewPage() {
         const fromIdx = currentDoneKeys.indexOf(sourceKey);
         if (fromIdx !== -1) {
           currentDoneKeys.splice(fromIdx, 1);
-          const insertIdx = fromIdx < slot ? slot - 1 : slot;
-          currentDoneKeys.splice(Math.max(0, Math.min(insertIdx, currentDoneKeys.length)), 0, sourceKey);
+          currentDoneKeys.splice(Math.max(0, Math.min(targetIndex, currentDoneKeys.length)), 0, sourceKey);
         }
       } else {
         const doneCount = currentDoneKeys.length;
         const fromIdx = currentPendingKeys.indexOf(sourceKey);
         if (fromIdx !== -1) {
-          const pendingSlot = slot - doneCount;
-          const insertIdx = fromIdx < pendingSlot ? pendingSlot - 1 : pendingSlot;
-          currentPendingKeys.splice(Math.max(0, Math.min(insertIdx, currentPendingKeys.length)), 0, sourceKey);
+          const targetPendingIdx = targetIndex - doneCount;
+          currentPendingKeys.splice(fromIdx, 1);
+          currentPendingKeys.splice(Math.max(0, Math.min(targetPendingIdx, currentPendingKeys.length)), 0, sourceKey);
         }
       }
 
@@ -285,6 +285,13 @@ export function OverviewPage() {
       cardEl.setPointerCapture(e.pointerId);
     } catch {}
 
+    const wrapEl = cardEl.closest('.flow-chain-wrap');
+    const nodeEls = wrapEl ? (Array.from(wrapEl.querySelectorAll('.flow-node-step')) as HTMLElement[]) : [];
+    const staticSlotCenters = nodeEls.map((el) => {
+      const r = el.getBoundingClientRect();
+      return r.left + r.width / 2;
+    });
+
     dragRef.current = {
       key: item.key,
       isDone: item.done,
@@ -293,7 +300,8 @@ export function OverviewPage() {
       startY: e.clientY,
       cardEl,
       hasMoved: false,
-      slot: index,
+      currentHoverIndex: index,
+      staticSlotCenters,
     };
   };
 
@@ -308,50 +316,34 @@ export function OverviewPage() {
       if (Math.hypot(dx, dy) > 4) {
         cur.hasMoved = true;
         setDraggingKey(cur.key);
-        setTargetSlot(cur.originIndex);
+        setHoverIndex(cur.originIndex);
       } else {
         return;
       }
     }
 
-    cur.cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.05)`;
+    cur.cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.06)`;
 
-    const wrapEl = cur.cardEl.closest('.flow-chain-wrap');
-    if (!wrapEl) return;
-
-    const nodeEls = Array.from(wrapEl.querySelectorAll('.flow-node-step')) as HTMLElement[];
     const doneCount = flowItems.filter((i) => i.done).length;
+    const minIdx = cur.isDone ? 0 : doneCount;
+    const maxIdx = cur.isDone ? doneCount - 1 : flowItems.length - 1;
 
-    const minSlot = cur.isDone ? 0 : doneCount;
-    const maxSlot = cur.isDone ? doneCount : flowItems.length;
-
-    let bestSlot = cur.slot;
+    let bestIdx = cur.currentHoverIndex;
     let minDist = Infinity;
 
-    for (let s = minSlot; s <= maxSlot; s++) {
-      let slotX = 0;
-      if (s === 0) {
-        const firstRect = nodeEls[0]?.getBoundingClientRect();
-        slotX = firstRect ? firstRect.left : 0;
-      } else if (s === nodeEls.length) {
-        const lastRect = nodeEls[nodeEls.length - 1]?.getBoundingClientRect();
-        slotX = lastRect ? lastRect.right : 99999;
-      } else {
-        const prevRect = nodeEls[s - 1]?.getBoundingClientRect();
-        const nextRect = nodeEls[s]?.getBoundingClientRect();
-        slotX = (prevRect && nextRect) ? (prevRect.right + nextRect.left) / 2 : 0;
-      }
-
-      const dist = Math.abs(e.clientX - slotX);
+    for (let i = minIdx; i <= maxIdx; i++) {
+      const centerX = cur.staticSlotCenters[i];
+      if (centerX === undefined) continue;
+      const dist = Math.abs(e.clientX - centerX);
       if (dist < minDist) {
         minDist = dist;
-        bestSlot = s;
+        bestIdx = i;
       }
     }
 
-    if (bestSlot !== cur.slot) {
-      cur.slot = bestSlot;
-      setTargetSlot(bestSlot);
+    if (bestIdx !== cur.currentHoverIndex) {
+      cur.currentHoverIndex = bestIdx;
+      setHoverIndex(bestIdx);
     }
   };
 
@@ -365,15 +357,15 @@ export function OverviewPage() {
 
     cur.cardEl.style.transform = '';
 
-    if (cur.hasMoved && cur.slot !== cur.originIndex && (cur.slot !== cur.originIndex + 1)) {
-      applySlotMove(cur.key, cur.slot, cur.isDone);
+    if (cur.hasMoved && cur.currentHoverIndex !== cur.originIndex) {
+      applyReorder(cur.key, cur.currentHoverIndex, cur.isDone);
       setReconnectedKey(cur.key);
       setTimeout(() => setReconnectedKey(null), 500);
     }
 
     dragRef.current = null;
     setDraggingKey(null);
-    setTargetSlot(null);
+    setHoverIndex(null);
   };
 
 
@@ -458,7 +450,6 @@ export function OverviewPage() {
         <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /></div>
         {flowItems.length > 0
           ? <div className="flow-chain-wrap">
-              {targetSlot === 0 && <div className="flow-drop-beam-indicator flow-drop-beam-indicator--start" />}
               {flowItems.slice(0, 12).map((item, index) => {
                 const isDone = item.done;
                 const activeIdx = flowItems.findIndex((t) => !t.done);
@@ -467,13 +458,43 @@ export function OverviewPage() {
                 const cat = isDone ? "done" : "focus";
 
                 const isItemDragged = draggingKey === item.key;
-                const isRightLineDisconnected = Boolean(draggingKey && (item.key === draggingKey || flowItems[index + 1]?.key === draggingKey));
+                const draggingOriginIndex = dragRef.current?.originIndex ?? -1;
+                const isDraggingActive = Boolean(draggingKey);
+
+                let shiftX = 0;
+                let shiftY = 0;
+                if (draggingKey && !isItemDragged && hoverIndex !== null && draggingOriginIndex !== -1) {
+                  let deltaSlots = 0;
+                  if (draggingOriginIndex < hoverIndex) {
+                    if (index > draggingOriginIndex && index <= hoverIndex) {
+                      deltaSlots = -1;
+                    }
+                  } else if (draggingOriginIndex > hoverIndex) {
+                    if (index >= hoverIndex && index < draggingOriginIndex) {
+                      deltaSlots = 1;
+                    }
+                  }
+
+                  if (deltaSlots !== 0) {
+                    shiftX = deltaSlots * 246;
+                    if (Math.abs(deltaSlots) % 2 === 1) {
+                      shiftY = isTop ? 60 : -60;
+                    }
+                  }
+                }
+
                 const isReconnecting = Boolean(reconnectedKey && (flowItems[index]?.key === reconnectedKey || flowItems[index + 1]?.key === reconnectedKey));
 
                 return (
                   <Fragment key={item.key}>
                     <div
                       className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'} ${isItemDragged ? 'is-dragged-source' : ''}`}
+                      style={{
+                        transform: !isItemDragged && (shiftX !== 0 || shiftY !== 0)
+                          ? `translate3d(${shiftX}px, ${shiftY}px, 0)`
+                          : 'translate3d(0px, 0px, 0)',
+                        transition: isItemDragged ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1)',
+                      }}
                     >
                       <div
                         className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''} ${isItemDragged ? 'is-pointer-dragging' : ''}`}
@@ -482,8 +503,8 @@ export function OverviewPage() {
                         onPointerUp={handlePointerUp}
                         onPointerCancel={handlePointerUp}
                       >
-                        {index > 0 && <span className={`flow-pin flow-pin--left ${isItemDragged ? 'flow-pin--faded' : ''}`} />}
-                        {index < Math.min(flowItems.length, 12) - 1 && <span className={`flow-pin flow-pin--right ${isItemDragged ? 'flow-pin--faded' : ''}`} />}
+                        {index > 0 && <span className={`flow-pin flow-pin--left ${isDraggingActive ? 'flow-pin--faded' : ''}`} />}
+                        {index < Math.min(flowItems.length, 12) - 1 && <span className={`flow-pin flow-pin--right ${isDraggingActive ? 'flow-pin--faded' : ''}`} />}
                         <div className="flow-card-head">
                           <span className={`flow-type-dot flow-type-dot--${cat}`} />
                           <span className="flow-card-title">{item.title}</span>
@@ -550,11 +571,10 @@ export function OverviewPage() {
                     </div>
                     {index < Math.min(flowItems.length, 12) - 1 && (
                       <div className="flow-connector-wrap">
-                        {targetSlot === index + 1 && <div className="flow-drop-beam-indicator" />}
                         <svg className="flow-connector-svg" viewBox="0 0 46 150">
                           <path
                             d={isTop ? "M 0 45 C 23 45, 23 105, 46 105" : "M 0 105 C 23 105, 23 45, 46 45"}
-                            className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'} ${isRightLineDisconnected ? 'flow-curve-line--faded' : ''} ${isReconnecting ? 'flow-curve-line--reconnecting' : ''}`}
+                            className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'} ${isDraggingActive ? 'flow-curve-line--faded' : ''} ${isReconnecting ? 'flow-curve-line--reconnecting' : ''}`}
                           />
                         </svg>
                       </div>
@@ -562,7 +582,6 @@ export function OverviewPage() {
                   </Fragment>
                 );
               })}
-              {targetSlot === Math.min(flowItems.length, 12) && <div className="flow-drop-beam-indicator flow-drop-beam-indicator--end" />}
             </div>
           : <div className="library-no-results">Nothing on the flow yet — add a habit or task to plan your day.</div>}
       </Panel>
