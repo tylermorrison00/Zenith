@@ -52,7 +52,15 @@ export function OverviewPage() {
   const doneHabits = habits.filter((h) => h.done);
   const hasData = tasks.length > 0 || projects.length > 0 || habits.length > 0 || timer.sessions > 0;
 
-  const flowItems = useMemo(() => {
+  const [orderKeys, setOrderKeys] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('zenith-flow-order');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const rawItems = useMemo(() => {
     const list: Array<{
       id: string;
       kind: 'habit' | 'task';
@@ -61,6 +69,7 @@ export function OverviewPage() {
       done: boolean;
       streak?: number;
       category: string;
+      key: string;
     }> = [];
 
     // 1. Sab se pehle habits
@@ -73,6 +82,7 @@ export function OverviewPage() {
         done: h.done,
         streak: h.streak,
         category: 'focus',
+        key: `habit:${h.id}`,
       });
     });
 
@@ -86,11 +96,74 @@ export function OverviewPage() {
         subtitle: t.project || 'Task',
         done: t.done,
         category: types[i % types.length],
+        key: `task:${t.id}`,
       });
     });
 
     return list;
   }, [habits, tasks]);
+
+  const flowItems = useMemo(() => {
+    const itemMap = new Map<string, typeof rawItems[0]>();
+    rawItems.forEach((i) => itemMap.set(i.key, i));
+
+    const allKeys = orderKeys.filter((k) => itemMap.has(k));
+    rawItems.forEach((i) => {
+      if (!allKeys.includes(i.key)) {
+        allKeys.push(i.key);
+      }
+    });
+
+    const doneItems: typeof rawItems[0][] = [];
+    const pendingItems: typeof rawItems[0][] = [];
+
+    allKeys.forEach((k) => {
+      const item = itemMap.get(k);
+      if (!item) return;
+      if (item.done) {
+        doneItems.push(item);
+      } else {
+        pendingItems.push(item);
+      }
+    });
+
+    return [...doneItems, ...pendingItems];
+  }, [rawItems, orderKeys]);
+
+  const handleCompleteItem = (item: { id: string; kind: 'habit' | 'task'; key: string }) => {
+    if (item.kind === 'habit') toggleHabit(item.id);
+    else toggleTask(item.id);
+
+    setOrderKeys((prev) => {
+      const currentKeys = prev.length ? prev.filter((k) => rawItems.some((r) => r.key === k)) : rawItems.map((i) => i.key);
+      const withoutItem = currentKeys.filter((k) => k !== item.key);
+      const doneKeys = withoutItem.filter((k) => {
+        const it = rawItems.find((r) => r.key === k);
+        return it && it.done;
+      });
+      withoutItem.splice(doneKeys.length, 0, item.key);
+      try { localStorage.setItem('zenith-flow-order', JSON.stringify(withoutItem)); } catch {}
+      return withoutItem;
+    });
+  };
+
+  const handleUncheckItem = (item: { id: string; kind: 'habit' | 'task'; key: string }) => {
+    if (item.kind === 'habit') toggleHabit(item.id);
+    else toggleTask(item.id);
+
+    setOrderKeys((prev) => {
+      const currentKeys = prev.length ? prev.filter((k) => rawItems.some((r) => r.key === k)) : rawItems.map((i) => i.key);
+      const withoutItem = currentKeys.filter((k) => k !== item.key);
+      const doneKeys = withoutItem.filter((k) => {
+        const it = rawItems.find((r) => r.key === k);
+        return it && it.done;
+      });
+      const insertIdx = Math.min(withoutItem.length, doneKeys.length + 1);
+      withoutItem.splice(insertIdx, 0, item.key);
+      try { localStorage.setItem('zenith-flow-order', JSON.stringify(withoutItem)); } catch {}
+      return withoutItem;
+    });
+  };
 
   const flowDetail = useMemo(() => {
     if (!flowItems.length) return 'No blocks planned';
@@ -193,12 +266,21 @@ export function OverviewPage() {
                       <span className={`flow-type-dot flow-type-dot--${cat}`} />
                       <span className="flow-card-title">{item.title}</span>
                       {isDone ? (
-                        <span
+                        <button
+                          type="button"
                           className="flow-check-badge is-done"
-                          title="Completed"
+                          title="Click to uncheck"
+                          aria-label={`Uncheck ${item.title}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const now = Date.now();
+                            if (now - lastCheckClickTimeRef.current < 600) return;
+                            lastCheckClickTimeRef.current = now;
+                            handleUncheckItem(item);
+                          }}
                         >
                           <Check size={11} strokeWidth={2.8} />
-                        </span>
+                        </button>
                       ) : isActive ? (
                         <button
                           type="button"
@@ -210,13 +292,26 @@ export function OverviewPage() {
                             const now = Date.now();
                             if (now - lastCheckClickTimeRef.current < 600) return;
                             lastCheckClickTimeRef.current = now;
-                            if (item.kind === 'habit') toggleHabit(item.id);
-                            else toggleTask(item.id);
+                            handleCompleteItem(item);
                           }}
                         >
                           <Check size={11} strokeWidth={2.5} />
                         </button>
-                      ) : null}
+                      ) : (
+                        <button
+                          type="button"
+                          className="flow-next-corner-target"
+                          aria-label={`Complete ${item.title}`}
+                          title="Click corner to complete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const now = Date.now();
+                            if (now - lastCheckClickTimeRef.current < 600) return;
+                            lastCheckClickTimeRef.current = now;
+                            handleCompleteItem(item);
+                          }}
+                        />
+                      )}
                     </div>
                     {isActive && (
                       <div className="flow-card-footer">
