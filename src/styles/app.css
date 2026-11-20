@@ -1356,6 +1356,9 @@
 }
 
 .flow-card {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
   cursor: grab !important;
   user-select: none !important;
   -webkit-user-select: none !important;
@@ -1366,25 +1369,29 @@
   cursor: grabbing !important;
 }
 
+.flow-node-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  will-change: transform;
+}
+
 .flow-card.is-pointer-dragging {
   cursor: grabbing !important;
   z-index: 100 !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(var(--amber-rgb), 0.5) !important;
+  box-shadow: 0 28px 65px rgba(0, 0, 0, 0.95), 0 0 35px rgba(var(--amber-rgb), 0.55) !important;
   transition: none !important;
 }
 
-.flow-node-step.is-dragged-source {
-  opacity: 0.85;
+.flow-curve-line--faded {
+  opacity: 0 !important;
+  transition: opacity 0.18s ease !important;
 }
 
-.flow-curve-line--disconnected {
+.flow-pin--faded {
   opacity: 0 !important;
-  transition: opacity 0.2s ease !important;
-}
-
-.flow-pin--disconnected {
-  opacity: 0 !important;
-  transition: opacity 0.2s ease !important;
+  transition: opacity 0.18s ease !important;
 }
 
 .flow-curve-line--reconnecting {
@@ -1407,48 +1414,6 @@
     stroke-dasharray: none;
     stroke-dashoffset: 0;
     filter: drop-shadow(0 0 8px rgba(var(--amber-rgb), 0.6));
-  }
-}
-
-.flow-drop-beam-indicator {
-  position: absolute;
-  top: 20px;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  background: var(--amber);
-  border-radius: 999px;
-  box-shadow: 0 0 14px var(--amber), 0 0 28px rgba(var(--amber-rgb), 0.85);
-  animation: beamPulse 0.6s infinite alternate ease-in-out;
-  pointer-events: none;
-  z-index: 30;
-}
-
-.flow-drop-beam-indicator--start {
-  position: relative;
-  flex: 0 0 4px;
-  margin-right: 12px;
-  height: 90px;
-  align-self: center;
-}
-
-.flow-drop-beam-indicator--end {
-  position: relative;
-  flex: 0 0 4px;
-  margin-left: 12px;
-  height: 90px;
-  align-self: center;
-}
-
-@keyframes beamPulse {
-  0% {
-    opacity: 0.6;
-    transform: scaleY(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scaleY(1.05);
   }
 }
 
