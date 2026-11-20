@@ -219,15 +219,9 @@ export function OverviewPage() {
                       ) : null}
                     </div>
                     {isActive && (
-                      <>
-                        <div className="flow-progress-bar">
-                          <div className="flow-progress-bar-fill" style={{ width: '48%' }} />
-                        </div>
-                        <div className="flow-card-footer">
-                          <span className="flow-time-left">{item.kind === 'habit' ? 'Habit in progress' : 'In progress'}</span>
-                          <span className="flow-task-counter">{item.subtitle}</span>
-                        </div>
-                      </>
+                      <div className="flow-card-footer">
+                        <span className="flow-time-left">{item.kind === 'habit' ? 'Habit in progress' : 'Task in progress'}</span>
+                      </div>
                     )}
                   </div>
                 </div>
