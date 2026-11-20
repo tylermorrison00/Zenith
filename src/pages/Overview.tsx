@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -168,7 +168,7 @@ export function OverviewPage() {
     </div>
 
       <Panel className="flow-panel">
-        <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /><div className="flow-header-actions"><span className="flow-legend"><i className="legend-dot legend-dot--amber" />Focus <i className="legend-dot" />Meeting <i className="legend-dot legend-dot--break" />Break</span><button className="button-outline" onClick={() => navigate('/focus')}>Open planner <ArrowRight size={12} /></button></div></div>
+        <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /></div>
         {flowItems.length > 0
           ? <div className="flow-chain-wrap">{flowItems.slice(0, 12).map((item, index) => {
             const isDone = item.done;
