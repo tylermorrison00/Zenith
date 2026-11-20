@@ -1,22 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Archive, Check, ChevronLeft, ChevronRight, Clock3, FileText, FolderOpen, Pencil, Plus, Search, Sparkles, Target, Trash2, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Archive, Check, ChevronLeft, ChevronRight, FileText, FolderOpen, Pencil, Plus, Search, Target, Trash2, X } from 'lucide-react';
 import { GripDiagonal } from '../lib/icons';
-import { CardHeading, FolderGlyph, InlineBackLink, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill } from '../components/Shared';
+import { CardHeading, FolderGlyph, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
 import { currentWeekNumber } from '../lib/dates';
 import type { Project, ProjectFile, Task, Note } from '../data/seed';
 
 type ProjectFilter = 'All' | 'Active' | 'Done';
-type ProjectTab = 'Overview' | 'Milestones' | 'Files' | 'Activity';
 
-// Milestones and deliverables only exist once the user creates work.
-const milestones: { day: string; month: string; title: string; project: string; status: string }[] = [
-  { day: '22', month: 'Oct', title: 'Brand refresh review', project: 'Brand refresh', status: 'Review' },
-  { day: '24', month: 'Oct', title: 'Spec handoff', project: 'Ordo v2 spec', status: 'On track' },
-  { day: '31', month: 'Oct', title: 'Research synthesis', project: 'Research', status: 'On track' },
-  { day: '07', month: 'Nov', title: 'First essay draft', project: 'Writing', status: 'Planned' },
-];
+// Project milestones mapping
 
 const projectMilestonesMap: Record<string, { day: string; month: string; title: string; project: string; status: string }[]> = {
   home: [
@@ -36,8 +29,6 @@ const projectMilestonesMap: Record<string, { day: string; month: string; title: 
     { day: '04', month: 'Dec', title: 'Q4 deliverables signoff', project: 'Work', status: 'Planned' },
   ],
 };
-
-const deliverables: { name: string; status: string; owner: string; date: string; progress: number }[] = [];
 
 function WeekBars({ planned, projectKey = 'home' }: { planned: boolean; projectKey?: string }) {
   const uMap: Record<string, number[]> = {
@@ -96,120 +87,6 @@ function EditProjectDialog({ project, onClose, onSave }: { project: Project; onC
       <div className="modal-actions"><button type="button" className="button-quiet" onClick={onClose}>Cancel</button><button className="button-light" type="submit">Save changes</button></div>
     </form>
   </div>;
-}
-
-function ProjectCard({
-  project,
-  onOpen,
-  onEdit,
-  onDelete,
-}: {
-  project: Project;
-  onOpen: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onPointerDown(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMenuOpen(false);
-    }
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
-
-  return (
-    <div
-      className={`project-card ${project.id === 'zenith' ? 'project-card--active' : ''}`}
-      onClick={onOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
-    >
-      <div
-        className="habit-card-menu-wrap"
-        ref={menuRef}
-        style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="habit-card-menu-btn"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          aria-label={`Actions for ${project.name}`}
-        >
-          <GripDiagonal size={14} />
-        </button>
-        {menuOpen && (
-          <div className="habit-card-menu" role="menu" aria-label={`Actions for ${project.name}`}>
-            <button
-              className="habit-action"
-              role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                onEdit();
-              }}
-            >
-              <Pencil size={13} /> Edit
-            </button>
-            <button
-              className="habit-action"
-              role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                onDelete();
-              }}
-            >
-              <Trash2 size={13} /> Delete
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="project-card-header">
-        <strong className="project-card-title">{project.name}</strong>
-        <small className="project-card-sub">{project.sublabel || project.files}</small>
-      </div>
-
-      <div className={`folder-art ${project.id === 'zenith' ? 'folder-art--amber' : ''}`}>
-        <span />
-        <span />
-        <b>
-          <FolderGlyph active={project.id === 'zenith'} />
-        </b>
-      </div>
-
-      <div className="project-card-footer">
-        <span className="project-card-status">
-          <i
-            style={{
-              display: 'inline-block',
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: project.status === 'Done' ? 'var(--accent-hi)' : 'var(--amber)',
-            }}
-          />
-          {project.status}
-        </span>
-        <span className="project-card-progress">{project.progress}%</span>
-      </div>
-    </div>
-  );
 }
 
 function ProjectRow({
@@ -274,7 +151,7 @@ function ProjectRow({
 }
 
 export function ProjectsPage() {
-  const { projects, tasks, notes, projectFiles, addProject, updateProject, deleteProject, notify } = useDashboard();
+  const { projects, tasks, notes, addProject, updateProject, deleteProject, notify } = useDashboard();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<ProjectFilter>('All');
   const [planned, setPlanned] = useState(false);
@@ -395,24 +272,6 @@ export function ProjectsPage() {
     {dialogOpen && <NewProjectDialog onClose={() => setDialogOpen(false)} onCreate={(name) => { addProject(name); setDialogOpen(false); notify(`${name} added to projects`); }} />}
     {editingProject && <EditProjectDialog project={editingProject} onClose={() => setEditingProject(null)} onSave={(name) => { updateProject(editingProject.id, name); setEditingProject(null); }} />}
   </div>;
-}
-
-function MilestoneTimeline() {
-  const items: { title: string; detail: string; state: string; when: string }[] = [];
-  if (!items.length) return <div className="library-no-results">No milestones yet.</div>;
-  return <div className="brand-milestone-timeline">{items.map((item, index) => <div className={`brand-milestone-step brand-milestone-step--${item.state}`} key={item.title}><span className="brand-milestone-marker">{item.state === 'done' ? <Check size={12} /> : String(index + 1).padStart(2, '0')}</span><div className="brand-milestone-copy"><strong>{item.title}</strong><small>{item.detail}</small></div><span className="brand-milestone-date">{item.when}</span></div>)}</div>;
-}
-
-function DeliverablesTable() {
-  if (!deliverables.length) return <div className="library-no-results">No deliverables yet.</div>;
-  return <div className="table-wrap"><table className="deliverables-table"><thead><tr><th>Deliverable</th><th>Status</th><th>Owner</th><th>Due</th><th>Progress</th></tr></thead><tbody>{deliverables.map((item) => <tr key={item.name}><td><span className="deliverable-name"><FileText size={14} />{item.name}</span></td><td><TinyPill tone={item.status === 'In review' ? 'amber' : 'neutral'}>{item.status}</TinyPill></td><td>{item.owner}</td><td>{item.date}</td><td><span className="deliverable-progress"><ProgressBar value={item.progress} /><small>{item.progress}%</small></span></td></tr>)}</tbody></table></div>;
-}
-
-function ProjectTabContent({ tab, notify, projectFiles, focusPlanAdded, onAddFocusPlan, onAddFile }: { tab: ProjectTab; notify: (message: string) => void; projectFiles: ProjectFile[]; focusPlanAdded: boolean; onAddFocusPlan: () => void; onAddFile: () => void }) {
-  if (tab === 'Milestones') return <Panel className="detail-content-card"><CardHeading title="Milestones" detail="Steps from concept to handoff" /><MilestoneTimeline /><div className="milestone-footer"><span>Add this project to your focus plan</span><button className="button-outline" onClick={onAddFocusPlan}>{focusPlanAdded ? 'Added to focus plan' : 'Add to focus plan'} <ArrowRight size={12} /></button></div></Panel>;
-  if (tab === 'Files') return <Panel className="detail-content-card"><CardHeading title="Project files" detail={`${projectFiles.length} working files · latest activity first`} /><div className="project-file-list">{projectFiles.map((file) => <button key={file.name} className="project-file-row" onClick={() => notify(`${file.name} selected`)}><span className="project-file-icon"><FileText size={15} /></span><span className="project-file-copy"><strong>{file.name}</strong><small>{file.detail}</small></span><TinyPill>{file.type}</TinyPill><ArrowUpRight size={13} /></button>)}</div><button className="button-outline upload-file-button" onClick={onAddFile}>Add a file <Plus size={12} /></button></Panel>;
-  if (tab === 'Activity') return <Panel className="detail-content-card"><CardHeading title="Recent activity" detail="A tidy record of the work so far" /><div className="library-no-results">No activity yet.</div></Panel>;
-  return <div className="brand-overview-content"><Panel className="detail-content-card"><CardHeading title="Milestones" detail="A clear path to final handoff" /><MilestoneTimeline /></Panel><Panel className="detail-content-card deliverables-card"><CardHeading title="Deliverables" detail="Pieces moving together" action={<TinyPill>{deliverables.length} items</TinyPill>} /><DeliverablesTable /></Panel></div>;
 }
 
 function ProjectEditTaskModal({ task, onClose, onSave }: { task: { id: string; title: string; priority: string }; onClose: () => void; onSave: (title: string, priority: string) => void }) {

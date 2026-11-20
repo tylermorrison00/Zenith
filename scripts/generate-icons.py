@@ -57,10 +57,19 @@ for density, (size, canvas_size, inner_size) in densities.items():
     fg_canvas.paste(fg_logo, fg_offset, fg_logo)
     fg_canvas.save(os.path.join(dir_path, "ic_launcher_foreground.png"), "PNG")
 
-# 3. Remove mipmap-anydpi-v26 so Android does not force an opaque background squircle/mask
+# 3. Configure mipmap-anydpi-v26 with transparent background
 anydpi_dir = "android/app/src/main/res/mipmap-anydpi-v26"
-if os.path.exists(anydpi_dir):
-    shutil.rmtree(anydpi_dir)
-    print("Removed mipmap-anydpi-v26 to ensure transparent freeform icon")
+os.makedirs(anydpi_dir, exist_ok=True)
+adaptive_xml = '''<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+'''
+with open(os.path.join(anydpi_dir, "ic_launcher.xml"), "w", encoding="utf-8") as f:
+    f.write(adaptive_xml)
+with open(os.path.join(anydpi_dir, "ic_launcher_round.xml"), "w", encoding="utf-8") as f:
+    f.write(adaptive_xml)
+print("Configured mipmap-anydpi-v26 with transparent background")
 
 print("All Android launcher icons generated successfully (transparent background)!")

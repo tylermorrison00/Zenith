@@ -91,10 +91,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip \
-            --title "Zenith Android & Desktop v1.0.8" \
+          gh release create v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip \
+            --title "Zenith v1.0.8" \
             --notes "Zenith Update: Habits placed first in Today's flow before tasks. Available for mobile (APK) and laptop." || \
-          gh release upload android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber
+          gh release upload v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber
+          gh release upload android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber || true
 
   build-windows:
     name: Build Windows Setup
@@ -113,7 +114,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Web Application
-        run: npm run build
+        run: npx vite build
 
       - name: Pack Windows Executable
         run: npm run pack
@@ -126,5 +127,6 @@ jobs:
           if ($installer) {
             $destName = "Zenith.Setup.1.0.8.exe"
             Copy-Item $installer.FullName -Destination "release/$destName"
+            gh release upload v1.0.8 "release/$destName" --repo tylermorrison00/Zenith --clobber
             gh release upload android-v1.0.8 "release/$destName" --repo tylermorrison00/Zenith --clobber
           }

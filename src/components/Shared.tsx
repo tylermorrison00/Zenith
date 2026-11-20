@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Check, ChevronDown, CircleHelp, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Target, Timer, UserRound, X, Zap } from 'lucide-react';
+import { Bell, Check, ChevronDown, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
@@ -10,7 +10,7 @@ import { nextTheme, themeLogo, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
 export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOut?: () => void; theme?: ThemeName; onToggleTheme?: () => void }) {
-  const { startTimer, notify, timer } = useDashboard();
+  const { startTimer, notify } = useDashboard();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -193,9 +193,9 @@ export function CardHeading({ title, detail, action }: { title: string; detail?:
   return <div className="card-heading"><div><h2>{title}</h2>{detail && <p>{detail}</p>}</div>{action}</div>;
 }
 
-export function Panel({ children, className = '', as = 'section' }: { children: React.ReactNode; className?: string; as?: 'section' | 'div' }) {
+export function Panel({ children, className = '', as = 'section', style }: { children: React.ReactNode; className?: string; as?: 'section' | 'div'; style?: React.CSSProperties }) {
   const Tag = as;
-  return <Tag className={`panel ${className}`}>{children}</Tag>;
+  return <Tag className={`panel ${className}`} style={style}>{children}</Tag>;
 }
 
 export function TinyPill({ children, icon, tone = 'neutral' }: { children: React.ReactNode; icon?: React.ReactNode; tone?: 'neutral' | 'amber' | 'teal' }) {

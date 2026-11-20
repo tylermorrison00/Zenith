@@ -1,8 +1,8 @@
-import React, { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, SquareArrowOutUpRight, Timer, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
-import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill, Toggle } from '../components/Shared';
+import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
 import { currentWeekNumber, todayLabel } from '../lib/dates';

@@ -274,10 +274,20 @@ ipcMain.handle('update-check', async () => {
   let latestVersion = '';
   let assetUrl = '';
   try {
-    const release = JSON.parse(await fetchText('https://api.github.com/repos/tylermorrison00/Zenith/releases/latest'));
-    latestVersion = String(release.tag_name || '').replace(/^v/, '');
-    const asset = (release.assets || []).find((a) => /^Zenith\.Setup\..*\.exe$/.test(String(a.name || '')));
-    if (asset && asset.browser_download_url) assetUrl = asset.browser_download_url;
+    let release = null;
+    try {
+      const releases = JSON.parse(await fetchText('https://api.github.com/repos/tylermorrison00/Zenith/releases'));
+      if (Array.isArray(releases)) {
+        release = releases.find((r) => (r.assets || []).some((a) => /^Zenith\.Setup\..*\.exe$/.test(String(a.name || '')))) || releases[0];
+      }
+    } catch {
+      release = JSON.parse(await fetchText('https://api.github.com/repos/tylermorrison00/Zenith/releases/latest'));
+    }
+    if (release) {
+      latestVersion = String(release.tag_name || '').replace(/^[a-zA-Z\-_]+/, '');
+      const asset = (release.assets || []).find((a) => /^Zenith\.Setup\..*\.exe$/.test(String(a.name || '')));
+      if (asset && asset.browser_download_url) assetUrl = asset.browser_download_url;
+    }
   } catch {
     // API failed (rate limit / network) — fall back to raw package.json.
     try {

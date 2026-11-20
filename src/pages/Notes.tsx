@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { GripDiagonal } from '../lib/icons';
-import { CardHeading, Panel, TinyPill } from '../components/Shared';
+import { CardHeading, Panel } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { useDashboard } from '../state/DashboardContext';
 import type { Note } from '../data/seed';
 
 export function NotesPage() {
-  const { notes, updateNote, deleteNote, notify } = useDashboard();
+  const { notes, updateNote, deleteNote } = useDashboard();
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
