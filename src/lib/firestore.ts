@@ -70,6 +70,7 @@ export function subscribeUserDashboard(
       docRef,
       (snap) => {
         if (snap.exists()) {
+          if (snap.metadata.hasPendingWrites) return;
           const data = snap.data();
           if (data?.dashboard) {
             onUpdate(data.dashboard);

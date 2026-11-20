@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
@@ -35,6 +35,7 @@ export function OverviewPage() {
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [addType, setAddType] = useState<'task' | 'note' | null>(null);
   const [showTasks, setShowTasks] = useState(false);
+  const lastCheckClickTimeRef = useRef<number>(0);
 
   useEffect(() => () => stopAmbientSound(), []);
 
@@ -192,18 +193,12 @@ export function OverviewPage() {
                       <span className={`flow-type-dot flow-type-dot--${cat}`} />
                       <span className="flow-card-title">{item.title}</span>
                       {isDone ? (
-                        <button
-                          type="button"
+                        <span
                           className="flow-check-badge is-done"
                           title="Completed"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (item.kind === 'habit') toggleHabit(item.id);
-                            else toggleTask(item.id);
-                          }}
                         >
                           <Check size={11} strokeWidth={2.8} />
-                        </button>
+                        </span>
                       ) : isActive ? (
                         <button
                           type="button"
@@ -212,6 +207,9 @@ export function OverviewPage() {
                           title="Click to complete"
                           onClick={(e) => {
                             e.stopPropagation();
+                            const now = Date.now();
+                            if (now - lastCheckClickTimeRef.current < 600) return;
+                            lastCheckClickTimeRef.current = now;
                             if (item.kind === 'habit') toggleHabit(item.id);
                             else toggleTask(item.id);
                           }}

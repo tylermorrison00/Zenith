@@ -93,12 +93,13 @@ function rollHabit(habit: Habit, days: number): Habit {
   return { ...habit, history: next, streak: streakFromHistory(next), done: false };
 }
 
-function calcDaysPassed(lastDate: string | undefined, todayDate: string, habits?: Habit[]): number {
+function calcDaysPassed(lastDate: string | undefined, todayDate: string): number {
   if (!lastDate) {
-    return (habits || []).some((h) => h.done) ? 1 : 0;
+    return 0;
   }
   const [y1, m1, d1] = lastDate.split('-').map(Number);
   const [y2, m2, d2] = todayDate.split('-').map(Number);
+  if (y1 === y2 && m1 === m2 && d1 === d2) return 0;
   return Math.max(0, Math.round((new Date(y2, m2 - 1, d2).getTime() - new Date(y1, m1 - 1, d1).getTime()) / 864e5));
 }
 
@@ -118,7 +119,7 @@ function loadInitialState(): DashboardState {
     timer = { ...timer, seconds: Math.max(0, timer.seconds - elapsed), progress: Math.min(100, timer.progress + elapsed / 36), changedAt: Date.now(), running: timer.seconds - elapsed > 0 };
   }
   const today = getTodayDateString();
-  const days = calcDaysPassed(saved.lastHabitDate, today, saved.habits);
+  const days = calcDaysPassed(saved.lastHabitDate, today);
   const loadedHabits = (saved.habits ?? seedHabits).map((h) => rollHabit(h, days));
 
   return {
@@ -147,6 +148,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [userUid, setUserUid] = useState<string | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
   const isCloudLoadedRef = useRef<boolean>(false);
+  const lastLocalEditRef = useRef<number>(0);
 
   // Sync with Firestore Cloud when signed in
   useEffect(() => {
@@ -168,6 +170,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setState((current) => ({
           ...current,
           ...cloudData,
+          lastHabitDate: cloudData.lastHabitDate ?? current.lastHabitDate,
           tasks: cloudData.tasks ?? current.tasks,
           taskLists: cloudData.taskLists ?? current.taskLists,
           notes: cloudData.notes ?? current.notes,
@@ -196,9 +199,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       // 2. Subscribe to real-time changes
       const unsub = subscribeUserDashboard(uid, (remote) => {
         if (cancelled) return;
+        if (Date.now() - lastLocalEditRef.current < 2500) return;
         setState((current) => ({
           ...current,
           ...remote,
+          lastHabitDate: remote.lastHabitDate ?? current.lastHabitDate,
           tasks: remote.tasks ?? current.tasks,
           taskLists: remote.taskLists ?? current.taskLists,
           notes: remote.notes ?? current.notes,
@@ -227,7 +232,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = window.setTimeout(() => {
         void saveUserDashboard(userUid, state);
-      }, 1000);
+      }, 300);
     }
   }, [state, userUid]);
 
@@ -236,7 +241,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       const today = getTodayDateString();
       setState((current) => {
         if (current.lastHabitDate === today) return current;
-        const days = calcDaysPassed(current.lastHabitDate, today, current.habits);
+        const days = calcDaysPassed(current.lastHabitDate, today);
         return {
           ...current,
           lastHabitDate: today,
@@ -271,12 +276,17 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const notify = useCallback((message: string) => setToast(message), []);
+  const markLocalEdit = useCallback(() => {
+    lastLocalEditRef.current = Date.now();
+  }, []);
   const addTask = useCallback((title: string, project = 'General', priority: Task['priority'] = 'normal') => {
+    markLocalEdit();
     const task: Task = { id: `task-${Date.now()}`, title, project, due: 'Today · just added', done: false, priority };
     setState((current) => ({ ...current, tasks: [task, ...current.tasks] }));
     setToast('Task added to your day');
-  }, []);
+  }, [markLocalEdit]);
   const updateTask = useCallback((id: string, title: string, project?: string, priority?: Task['priority']) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       tasks: current.tasks.map((task) =>
@@ -291,31 +301,36 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       ),
     }));
     setToast('Task updated');
-  }, []);
+  }, [markLocalEdit]);
   const deleteTask = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       tasks: current.tasks.filter((task) => task.id !== id),
     }));
     setToast('Task deleted');
-  }, []);
+  }, [markLocalEdit]);
   const addTaskList = useCallback((name: string) => {
+    markLocalEdit();
     const list: TaskList = { id: `list-${Date.now()}`, name };
     setState((current) => current.taskLists.some((item) => item.name.toLowerCase() === name.toLowerCase())
       ? current
       : { ...current, taskLists: [...current.taskLists, list] });
     setToast(`"${name}" list created`);
-  }, []);
+  }, [markLocalEdit]);
   const deleteTaskList = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, taskLists: current.taskLists.filter((item) => item.id !== id) }));
     setToast('List removed · its tasks stay in All tasks');
-  }, []);
+  }, [markLocalEdit]);
   const addNote = useCallback((title: string, body: string) => {
+    markLocalEdit();
     const note: Note = { id: `note-${Date.now()}`, title, excerpt: body || 'A new note for this block.', project: 'General', updated: 'Just now' };
     setState((current) => ({ ...current, notes: [note, ...current.notes] }));
     setToast('Note saved to your library');
-  }, []);
+  }, [markLocalEdit]);
   const updateNote = useCallback((id: string, title: string, body: string) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       notes: current.notes.map((note) =>
@@ -330,40 +345,46 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       ),
     }));
     setToast('Note updated');
-  }, []);
+  }, [markLocalEdit]);
   const deleteNote = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       notes: current.notes.filter((note) => note.id !== id),
     }));
     setToast('Note deleted');
-  }, []);
+  }, [markLocalEdit]);
   const addProject = useCallback((name: string) => {
+    markLocalEdit();
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `project-${Date.now()}`;
     const project: Project = { id: `${slug}-${Date.now()}`, name, sublabel: '0 files', nextBlock: 'Plan a first block', hours: 0, progress: 0, files: '0 of 0 files', due: 'Not set', status: 'Needs time' };
     setState((current) => ({ ...current, projects: [project, ...current.projects] }));
     setToast(`${name} added to projects`);
-  }, []);
+  }, [markLocalEdit]);
   const updateProject = useCallback((id: string, name: string) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       projects: current.projects.map((p) => (p.id === id ? { ...p, name } : p)),
     }));
     setToast('Project updated');
-  }, []);
+  }, [markLocalEdit]);
   const deleteProject = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({
       ...current,
       projects: current.projects.filter((p) => p.id !== id),
     }));
     setToast('Project deleted');
-  }, []);
+  }, [markLocalEdit]);
   const addFocusPlanBlock = useCallback((block: FocusPlanAddition) => {
+    markLocalEdit();
     setState((current) => current.focusPlanAdditions.some((item) => item.id === block.id)
       ? current
       : { ...current, focusPlanAdditions: [...current.focusPlanAdditions, block] });
-  }, []);
+  }, [markLocalEdit]);
   const addProjectFile = useCallback((file: { name: string; size: number; type: string }) => {
+    markLocalEdit();
     const extension = file.name.split('.').pop()?.toUpperCase();
     const type = extension && extension !== file.name.toUpperCase() ? extension : file.type.split('/').pop()?.toUpperCase() || 'FILE';
     const size = file.size >= 1024 * 1024
@@ -374,46 +395,61 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       ? current
       : { ...current, projectFiles: [entry, ...current.projectFiles] });
     setToast(`${file.name} added to your files`);
-  }, []);
+  }, [markLocalEdit]);
   const toggleTask = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, tasks: current.tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) }));
-  }, []);
+  }, [markLocalEdit]);
   const toggleHabit = useCallback((id: string) => {
+    markLocalEdit();
+    const today = getTodayDateString();
     setState((current) => ({
       ...current,
-      lastHabitDate: getTodayDateString(),
+      lastHabitDate: today,
       habits: current.habits.map((habit) => {
         if (habit.id !== id) return habit;
-        const history = habit.history.slice();
+        const history = Array.isArray(habit.history) && habit.history.length === HABIT_HISTORY_DAYS
+          ? habit.history.slice()
+          : habitHistory(habit.streak, habit.done);
         history[history.length - 1] = !history[history.length - 1];
-        return { ...habit, history, done: Boolean(history[history.length - 1]), streak: streakFromHistory(history) };
+        const done = Boolean(history[history.length - 1]);
+        return { ...habit, history, done, streak: streakFromHistory(history) };
       }),
     }));
-  }, []);
+  }, [markLocalEdit]);
   const addHabit = useCallback((title: string, detail: string) => {
+    markLocalEdit();
     const habit: Habit = { id: `habit-${Date.now()}`, title, detail: detail || 'Every day', streak: 0, done: false, history: habitHistory(0, false) };
     setState((current) => ({ ...current, habits: [habit, ...current.habits] }));
     setToast('Habit card added');
-  }, []);
+  }, [markLocalEdit]);
   const updateHabit = useCallback((id: string, title: string, detail: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, habits: current.habits.map((habit) => habit.id === id ? { ...habit, title, detail: detail || habit.detail } : habit) }));
     setToast('Habit updated');
-  }, []);
+  }, [markLocalEdit]);
   const deleteHabit = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, habits: current.habits.filter((habit) => habit.id !== id) }));
     setToast('Habit removed');
-  }, []);
+  }, [markLocalEdit]);
   const toggleRitual = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, rituals: current.rituals.map((item) => item.id === id ? { ...item, on: !item.on } : item) }));
-  }, []);
+  }, [markLocalEdit]);
   const toggleWeekRule = useCallback((id: string) => {
+    markLocalEdit();
     setState((current) => ({ ...current, weekRules: current.weekRules.map((item) => item.id === id ? { ...item, on: !item.on } : item), appliedPlan: false }));
-  }, []);
-  const toggleHeldBlock = useCallback(() => setState((current) => ({ ...current, heldBlock: !current.heldBlock })), []);
+  }, [markLocalEdit]);
+  const toggleHeldBlock = useCallback(() => {
+    markLocalEdit();
+    setState((current) => ({ ...current, heldBlock: !current.heldBlock }));
+  }, [markLocalEdit]);
   const applyWeekPlan = useCallback(() => {
+    markLocalEdit();
     setState((current) => ({ ...current, appliedPlan: true, appliedWeekRules: current.weekRules.map((rule) => ({ ...rule })) }));
     setToast('Next week’s focus plan is updated');
-  }, []);
+  }, [markLocalEdit]);
   const startTimer = useCallback(() => {
     setState((current) => ({ ...current, timer: { ...current.timer, seconds: current.timer.seconds || 60 * 60, progress: current.timer.seconds ? current.timer.progress : 0, running: true, changedAt: Date.now() } }));
   }, []);
