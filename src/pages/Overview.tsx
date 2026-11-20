@@ -322,7 +322,7 @@ export function OverviewPage() {
       }
     }
 
-    cur.cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.06)`;
+    cur.cardEl.style.setProperty('transform', `translate3d(${dx}px, ${dy}px, 0) scale(1.06)`, 'important');
 
     const doneCount = flowItems.filter((i) => i.done).length;
     const minIdx = cur.isDone ? 0 : doneCount;
@@ -355,8 +355,8 @@ export function OverviewPage() {
       cur.cardEl.releasePointerCapture(e.pointerId);
     } catch {}
 
-    cur.cardEl.style.transition = 'none';
-    cur.cardEl.style.transform = '';
+    cur.cardEl.style.removeProperty('transform');
+    cur.cardEl.style.removeProperty('transition');
 
     if (cur.hasMoved && cur.currentHoverIndex !== cur.originIndex) {
       applyReorder(cur.key, cur.currentHoverIndex, cur.isDone);
