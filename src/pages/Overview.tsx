@@ -49,7 +49,6 @@ export function OverviewPage() {
     .filter((folder) => `${folder.name} ${folder.detail}`.toLowerCase().includes(folderQuery.toLowerCase())), [folderQuery, projects]);
   const openTasks = tasks.filter((task) => !task.done);
   const doneTasks = tasks.filter((task) => task.done);
-  const doneHabits = habits.filter((h) => h.done);
   const hasData = tasks.length > 0 || projects.length > 0 || habits.length > 0 || timer.sessions > 0;
 
   const [orderKeys, setOrderKeys] = useState<string[]>(() => {
@@ -60,6 +59,7 @@ export function OverviewPage() {
     return [];
   });
 
+  const [flowFilter, setFlowFilter] = useState<'all' | 'habits' | 'tasks'>('all');
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [reconnectedKey, setReconnectedKey] = useState<string | null>(null);
@@ -154,6 +154,16 @@ export function OverviewPage() {
 
     return [...doneItems, ...pendingItems];
   }, [rawItems, orderKeys]);
+
+  const visibleFlowItems = useMemo(() => {
+    if (flowFilter === 'habits') {
+      return flowItems.filter((i) => i.kind === 'habit');
+    }
+    if (flowFilter === 'tasks') {
+      return flowItems.filter((i) => i.kind === 'task');
+    }
+    return flowItems;
+  }, [flowItems, flowFilter]);
 
   useEffect(() => {
     const itemMap = new Map<string, typeof rawItems[0]>();
@@ -252,18 +262,34 @@ export function OverviewPage() {
       });
 
       if (isDone) {
-        const fromIdx = currentDoneKeys.indexOf(sourceKey);
+        const visDoneKeys = visibleFlowItems.filter((i) => i.done).map((i) => i.key);
+        const fromIdx = visDoneKeys.indexOf(sourceKey);
         if (fromIdx !== -1) {
-          currentDoneKeys.splice(fromIdx, 1);
-          currentDoneKeys.splice(Math.max(0, Math.min(targetIndex, currentDoneKeys.length)), 0, sourceKey);
+          visDoneKeys.splice(fromIdx, 1);
+          visDoneKeys.splice(Math.max(0, Math.min(targetIndex, visDoneKeys.length)), 0, sourceKey);
+
+          let visPtr = 0;
+          for (let i = 0; i < currentDoneKeys.length; i++) {
+            if (visDoneKeys.includes(currentDoneKeys[i])) {
+              currentDoneKeys[i] = visDoneKeys[visPtr++];
+            }
+          }
         }
       } else {
-        const doneCount = currentDoneKeys.length;
-        const fromIdx = currentPendingKeys.indexOf(sourceKey);
+        const visDoneCount = visibleFlowItems.filter((i) => i.done).length;
+        const visPendingKeys = visibleFlowItems.filter((i) => !i.done).map((i) => i.key);
+        const targetPendingIdx = targetIndex - visDoneCount;
+        const fromIdx = visPendingKeys.indexOf(sourceKey);
         if (fromIdx !== -1) {
-          const targetPendingIdx = targetIndex - doneCount;
-          currentPendingKeys.splice(fromIdx, 1);
-          currentPendingKeys.splice(Math.max(0, Math.min(targetPendingIdx, currentPendingKeys.length)), 0, sourceKey);
+          visPendingKeys.splice(fromIdx, 1);
+          visPendingKeys.splice(Math.max(0, Math.min(targetPendingIdx, visPendingKeys.length)), 0, sourceKey);
+
+          let visPtr = 0;
+          for (let i = 0; i < currentPendingKeys.length; i++) {
+            if (visPendingKeys.includes(currentPendingKeys[i])) {
+              currentPendingKeys[i] = visPendingKeys[visPtr++];
+            }
+          }
         }
       }
 
@@ -324,9 +350,9 @@ export function OverviewPage() {
 
     cur.cardEl.style.setProperty('transform', `translate3d(${dx}px, ${dy}px, 0) scale(1.06)`, 'important');
 
-    const doneCount = flowItems.filter((i) => i.done).length;
+    const doneCount = visibleFlowItems.filter((i) => i.done).length;
     const minIdx = cur.isDone ? 0 : doneCount;
-    const maxIdx = cur.isDone ? doneCount - 1 : flowItems.length - 1;
+    const maxIdx = cur.isDone ? doneCount - 1 : visibleFlowItems.length - 1;
 
     let bestIdx = cur.currentHoverIndex;
     let minDist = Infinity;
@@ -373,16 +399,22 @@ export function OverviewPage() {
 
 
   const flowDetail = useMemo(() => {
-    if (!flowItems.length) return 'No blocks planned';
-    const doneCount = flowItems.filter((i) => i.done).length;
+    if (!visibleFlowItems.length) return 'No blocks planned';
+    const doneCount = visibleFlowItems.filter((i) => i.done).length;
+    if (flowFilter === 'habits') {
+      return `${visibleFlowItems.length} habits (${doneCount} done)`;
+    }
+    if (flowFilter === 'tasks') {
+      return `${visibleFlowItems.length} tasks (${doneCount} done)`;
+    }
     if (habits.length > 0 && tasks.length > 0) {
       return `${habits.length} habits · ${tasks.length} tasks (${doneCount} done)`;
     }
     if (habits.length > 0) {
-      return `${habits.length} habits · ${doneHabits.length} done`;
+      return `${habits.length} habits (${doneCount} done)`;
     }
-    return `${tasks.length} tasks · ${doneTasks.length} done`;
-  }, [flowItems, habits.length, tasks.length, doneHabits.length, doneTasks.length]);
+    return `${tasks.length} tasks (${doneCount} done)`;
+  }, [visibleFlowItems, flowFilter, habits.length, tasks.length]);
   async function toggleAudio() {
     if (audioPlaying) {
       stopAmbientSound();
@@ -448,12 +480,29 @@ export function OverviewPage() {
     </div>
 
       <Panel className="flow-panel">
-        <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /></div>
-        {flowItems.length > 0
+        <div className="flow-panel-header">
+          <CardHeading title="Today's flow" detail={flowDetail} />
+          <div className="projects-filter-tabs" aria-label="Flow filters">
+            {(['All', 'Habits', 'Tasks'] as const).map((tab) => {
+              const val = tab.toLowerCase() as 'all' | 'habits' | 'tasks';
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  className={flowFilter === val ? 'is-active' : ''}
+                  onClick={() => setFlowFilter(val)}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {visibleFlowItems.length > 0
           ? <div className="flow-chain-wrap">
-              {flowItems.slice(0, 12).map((item, index) => {
+              {visibleFlowItems.slice(0, 12).map((item, index) => {
                 const isDone = item.done;
-                const activeIdx = flowItems.findIndex((t) => !t.done);
+                const activeIdx = visibleFlowItems.findIndex((t) => !t.done);
                 const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
                 const isTop = (index % 2 === 0);
                 const cat = isDone ? "done" : "focus";
@@ -485,7 +534,7 @@ export function OverviewPage() {
                   }
                 }
 
-                const isReconnecting = Boolean(reconnectedKey && (flowItems[index]?.key === reconnectedKey || flowItems[index + 1]?.key === reconnectedKey));
+                const isReconnecting = Boolean(reconnectedKey && (visibleFlowItems[index]?.key === reconnectedKey || visibleFlowItems[index + 1]?.key === reconnectedKey));
 
                 return (
                   <Fragment key={item.key}>
@@ -507,7 +556,7 @@ export function OverviewPage() {
                         onPointerCancel={handlePointerUp}
                       >
                         {index > 0 && <span className={`flow-pin flow-pin--left ${isDraggingActive ? 'flow-pin--faded' : ''}`} />}
-                        {index < Math.min(flowItems.length, 12) - 1 && <span className={`flow-pin flow-pin--right ${isDraggingActive ? 'flow-pin--faded' : ''}`} />}
+                        {index < Math.min(visibleFlowItems.length, 12) - 1 && <span className={`flow-pin flow-pin--right ${isDraggingActive ? 'flow-pin--faded' : ''}`} />}
                         <div className="flow-card-head">
                           <span className={`flow-type-dot flow-type-dot--${cat}`} />
                           <span className="flow-card-title">{item.title}</span>
@@ -572,7 +621,7 @@ export function OverviewPage() {
                         )}
                       </div>
                     </div>
-                    {index < Math.min(flowItems.length, 12) - 1 && (
+                    {index < Math.min(visibleFlowItems.length, 12) - 1 && (
                       <div className="flow-connector-wrap">
                         <svg className="flow-connector-svg" viewBox="0 0 46 150">
                           <path
@@ -586,7 +635,9 @@ export function OverviewPage() {
                 );
               })}
             </div>
-          : <div className="library-no-results">Nothing on the flow yet — add a habit or task to plan your day.</div>}
+          : <div className="library-no-results">
+              {flowFilter === 'habits' ? 'No habits on the flow yet.' : flowFilter === 'tasks' ? 'No tasks on the flow yet.' : 'Nothing on the flow yet — add a habit or task to plan your day.'}
+            </div>}
       </Panel>
 
       <div className="overview-stats-row">
