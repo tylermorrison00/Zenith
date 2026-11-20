@@ -130,12 +130,6 @@ export function OverviewPage() {
           {rituals.length > 0
             ? <div className="ritual-list">{rituals.map((ritual, index) => <div className="ritual-row" key={ritual.id}><span className={`ritual-icon ${index === 0 ? 'ritual-icon--amber' : ''}`}>{index === 0 ? '◷' : index === 1 ? '◌' : '⌁'}</span><div className="ritual-copy"><strong>{ritual.title}</strong><small>{ritual.detail}</small></div><Toggle checked={ritual.on} onChange={() => toggleRitual(ritual.id)} label={`${ritual.title} toggle`} /></div>)}</div>
             : <div className="library-no-results">No rituals yet.</div>}
-          <div id="habit-list" className="habit-list-wrap">
-            <div className="sidebar-section-heading"><span>Small rhythms</span><span className="section-label">{habits.length} habits</span></div>
-            {habits.length > 0
-              ? <div className="habit-list">{habits.map((habit) => <button className="habit-row" key={habit.id} onClick={() => toggleHabit(habit.id)} aria-pressed={habit.done}><span className={`habit-check ${habit.done ? 'is-done' : ''}`}>{habit.done && <Check size={11} />}</span><span className="habit-copy"><strong>{habit.title}</strong><small>{habit.detail}</small></span><span className="habit-streak"><span>↗</span>{habit.streak}</span></button>)}</div>
-              : <div className="library-no-results">No habits yet.</div>}
-          </div>
           <button className="tasks-expand" onClick={() => setShowTasks((value) => !value)}><span><ListChecks size={14} /> Today’s tasks</span><span>{openTasks.length} open {showTasks ? '−' : '+'}</span></button>
           {showTasks && (tasks.length > 0
             ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>
