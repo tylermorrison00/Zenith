@@ -3,7 +3,13 @@
 .task-card-wrap{position:relative;display:flex;align-items:center;width:100%;margin-bottom:6px;background:rgba(255,255,255,.025);border:1px solid rgba(226,217,208,.08);border-radius:10px;transition:background .15s ease,border-color .15s ease}.task-card-wrap:hover{background:rgba(255,255,255,.045);border-color:rgba(226,217,208,.16)}
 .flow-progress-bar{display:none!important}
 .flow-card-menu-dots{display:none!important}
-.flow-card{min-height:78px;justify-content:space-between}
+.flow-card{height:78px;min-height:78px;max-height:78px;justify-content:space-between}
+.flow-connector-wrap{height:150px!important}
+.flow-pin{width:10px!important;height:10px!important}
+.flow-pin--left{left:-5px!important}
+.flow-pin--right{right:-5px!important}
+.flow-curve-line{stroke-width:2.2px!important}
+.flow-curve-btn{display:none!important}
 
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px}
 .project-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:13px 13px 11px;color:var(--text);text-align:left;border:1px solid rgba(226,217,208,.08);border-radius:14px;background:linear-gradient(145deg,#181716,#100f0e);transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease;cursor:pointer;user-select:none}

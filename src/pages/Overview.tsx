@@ -233,13 +233,12 @@ export function OverviewPage() {
                 </div>
                 {index < Math.min(flowItems.length, 12) - 1 && (
                   <div className="flow-connector-wrap">
-                    <svg className="flow-connector-svg" viewBox="0 0 46 140">
+                    <svg className="flow-connector-svg" viewBox="0 0 46 150">
                       <path
-                        d={isTop ? "M 0 32 C 23 32, 23 92, 46 92" : "M 0 92 C 23 92, 23 32, 46 32"}
+                        d={isTop ? "M 0 45 C 23 45, 23 105, 46 105" : "M 0 105 C 23 105, 23 45, 46 45"}
                         className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'}`}
                       />
                     </svg>
-                    <button className="flow-curve-btn" onClick={(e) => { e.stopPropagation(); navigate(item.kind === 'habit' ? '/habits' : '/focus'); }}>+</button>
                   </div>
                 )}
               </Fragment>
