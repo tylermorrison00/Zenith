@@ -5,7 +5,7 @@ import { GripDiagonal } from '../lib/icons';
 import { CardHeading, FolderGlyph, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
 import { currentWeekNumber } from '../lib/dates';
-import type { Project, ProjectFile, Task, Note } from '../data/seed';
+import type { Project, Task, Note } from '../data/seed';
 
 type ProjectFilter = 'All' | 'Active' | 'Done';
 
