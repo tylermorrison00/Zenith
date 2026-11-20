@@ -175,7 +175,7 @@ export function OverviewPage() {
             const activeIdx = flowItems.findIndex((t) => !t.done);
             const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
             const isTop = (index % 2 === 0);
-            const cat = isDone ? "done" : isActive ? "focus" : item.category;
+            const cat = isDone ? "done" : "focus";
             return (
               <Fragment key={item.id}>
                 <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
