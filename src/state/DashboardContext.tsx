@@ -146,6 +146,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState('');
   const [userUid, setUserUid] = useState<string | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
+  const isCloudLoadedRef = useRef<boolean>(false);
 
   // Sync with Firestore Cloud when signed in
   useEffect(() => {
@@ -174,6 +175,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           projects: cloudData.projects ?? current.projects,
           rituals: cloudData.rituals ?? current.rituals,
         }));
+        writeStorage(stateKey, {
+          ...cloudData,
+          tasks: cloudData.tasks,
+          taskLists: cloudData.taskLists,
+          notes: cloudData.notes,
+          habits: cloudData.habits,
+          projects: cloudData.projects,
+        });
       } else {
         // Cloud is empty for this user! Backup current local state into Firestore
         const local = readStorage<Partial<DashboardState>>(stateKey, {});
@@ -181,6 +190,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           void saveUserDashboard(uid, local);
         }
       }
+
+      isCloudLoadedRef.current = true;
 
       // 2. Subscribe to real-time changes
       const unsub = subscribeUserDashboard(uid, (remote) => {
@@ -207,16 +218,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Save to localStorage immediately, and debounced to Firestore Cloud
+  // Save to localStorage immediately, and debounced to Firestore Cloud only after cloud state loaded
   useEffect(() => {
     writeStorage(stateKey, { ...state, timer: undefined });
     writeStorage(timerKey, state.timer);
 
-    if (userUid) {
+    if (userUid && isCloudLoadedRef.current) {
       if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = window.setTimeout(() => {
         void saveUserDashboard(userUid, state);
-      }, 700);
+      }, 1000);
     }
   }, [state, userUid]);
 

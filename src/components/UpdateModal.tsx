@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Download, RefreshCw, X } from 'lucide-react';
+import { registerPlugin } from '@capacitor/core';
 
-// Update popup — opens in the CENTER OF THE APP WINDOW (the modal scrim is
-// position:fixed inside the app's own window, not the laptop screen), and
-// walks the user through every step with a real downloading progress bar:
-//   checking -> up to date | update available -> downloading (%, MB) ->
-//   installing (app restarts itself) | error (shown in the popup, the app
-//   is never silently closed and the login is never touched).
-//
-// Why this exists (v1.0.3): the old Update button awaited ONE ipc call with
-// no timeout and no progress — live on v1.0.1 it sat on "Checking for
-// updates…" for ~5 minutes, then the app closed and nothing had updated.
-// The new flow has a 10s timeout in main, a 12s safety timeout here, and
-// progress events for the whole download.
+interface ApkUpdaterPlugin {
+  downloadAndInstall(options: { url: string }): Promise<{ success: boolean }>;
+  addListener(
+    eventName: 'downloadProgress',
+    listenerFunc: (progress: { percent: number; received: number; total: number }) => void
+  ): Promise<{ remove: () => void }>;
+}
 
-const CURRENT_APP_VERSION = '1.0.3';
+const ApkUpdater = registerPlugin<ApkUpdaterPlugin>('ApkUpdater');
+
+const CURRENT_APP_VERSION = '1.0.4';
 
 function compareSemver(a: string, b: string): number {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
@@ -177,11 +175,32 @@ export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => v
     if (!window.zenith) {
       if (!apkDownloadUrl) return;
       setPhase('downloading');
-      setProgress(100);
+      setProgress(0);
+      setReceived(0);
+      setTotal(0);
+      setError('');
+
       try {
-        window.location.href = apkDownloadUrl;
-      } catch {
-        window.open(apkDownloadUrl, '_system');
+        let handle: { remove: () => void } | null = null;
+        try {
+          handle = await ApkUpdater.addListener('downloadProgress', (info) => {
+            setProgress(info.percent);
+            setReceived(info.received);
+            setTotal(info.total);
+          });
+        } catch {
+          // Listener fallback
+        }
+
+        const res = await ApkUpdater.downloadAndInstall({ url: apkDownloadUrl });
+        if (handle) handle.remove();
+        if (res && res.success) {
+          setPhase('installing');
+        }
+      } catch (err) {
+        console.error('Update error:', err);
+        setError('Update failed. Please check internet connection.');
+        setPhase('error');
       }
       return;
     }
@@ -251,36 +270,16 @@ export function UpdateModal({ open, onClose }: { open: boolean; onClose: () => v
             <div className="update-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
               <div className="update-progress-fill" style={{ width: `${progress}%` }} />
             </div>
-            {!window.zenith ? (
-              <>
-                <p className="update-sub">
-                  Download start ho chuki hai! Notification drawer mein file complete hote hi tap karke install kar lein.
-                </p>
-                <div className="modal-actions" style={{ marginTop: 12 }}>
-                  {apkDownloadUrl && (
-                    <a
-                      href={apkDownloadUrl}
-                      className="auth-submit"
-                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Download size={14} /> Direct APK Link
-                    </a>
-                  )}
-                  <button className="auth-submit auth-submit--ghost" type="button" onClick={onClose}>Done</button>
-                </div>
-              </>
-            ) : (
-              <p className="update-sub">
-                {progress}%{total > 0 ? ` · ${formatMB(received)} of ${formatMB(total)}` : received > 0 ? ` · ${formatMB(received)} downloaded` : ''}
-              </p>
-            )}
+            <p className="update-sub">
+              {progress}%{total > 0 ? ` · ${formatMB(received)} of ${formatMB(total)}` : received > 0 ? ` · ${formatMB(received)} downloaded` : ''}
+            </p>
           </div>
         )}
 
         {phase === 'installing' && (
           <div className="update-body">
-            <p><RefreshCw size={16} className="update-spin" /> Installing… the app will close and reopen on the new version.</p>
-            <p className="update-sub">Your account stays signed in — nothing to do.</p>
+            <p><RefreshCw size={16} className="update-spin" /> Installing update…</p>
+            <p className="update-sub">Prompt par "Update" par tap karein. Zenith restart ho jayega.</p>
           </div>
         )}
 

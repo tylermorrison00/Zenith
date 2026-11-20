@@ -43,6 +43,10 @@ jobs:
           pip install Pillow || pip3 install Pillow --break-system-packages || true
           python3 scripts/generate-icons.py
 
+      - name: Setup Native In-App Updater Plugin
+        run: |
+          python3 scripts/setup-updater-plugin.py
+
       - name: Build Android Debug APK
         run: |
           cd android
@@ -67,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.3 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.3" \
-            --notes "Zenith Android Mobile Update: Cloud data sync between Laptop and Mobile (tasks, habits, notes), in-app updater, native bottom navigation. Download Zenith.apk to update." || \
-          gh release upload android-v1.0.3 release-apk/Zenith.apk --clobber
+          gh release create android-v1.0.4 release-apk/Zenith.apk \
+            --title "Zenith Android v1.0.4" \
+            --notes "Zenith Android Mobile Update: In-app auto updater (no Chrome redirect), full cloud data sync with laptop tasks and habits. Download Zenith.apk to update." || \
+          gh release upload android-v1.0.4 release-apk/Zenith.apk --clobber
