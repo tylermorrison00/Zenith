@@ -5,7 +5,7 @@ import { GripDiagonal } from '../lib/icons';
 import { CardHeading, FolderGlyph, InlineBackLink, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
 import { currentWeekNumber } from '../lib/dates';
-import type { Project, ProjectFile } from '../data/seed';
+import type { Project, ProjectFile, Task, Note } from '../data/seed';
 
 type ProjectFilter = 'All' | 'Active' | 'Done';
 type ProjectTab = 'Overview' | 'Milestones' | 'Files' | 'Activity';
@@ -209,6 +209,67 @@ function ProjectCard({
         <span className="project-card-progress">{project.progress}%</span>
       </div>
     </div>
+  );
+}
+
+function ProjectRow({
+  project,
+  onOpen,
+  onEdit,
+  onDelete,
+  tasks,
+  notes,
+}: {
+  project: Project;
+  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  tasks: Task[];
+  notes: Note[];
+}) {
+  const pTasks = (tasks || []).filter((t) => t.project && (t.project.toLowerCase() === (project.name || '').toLowerCase() || t.project.toLowerCase() === (project.id || '').toLowerCase()));
+  const pNotes = (notes || []).filter((n) => n.project && (n.project.toLowerCase() === (project.name || '').toLowerCase() || n.project.toLowerCase() === (project.id || '').toLowerCase()));
+  const pDone = pTasks.filter((t) => t.done).length;
+  const pPct = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : (project.progress || 0);
+
+  return (
+    <tr className="project-list-row" onClick={onOpen} style={{ cursor: 'pointer' }}>
+      <td>
+        <button className="project-name-button" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+          <FolderGlyph active={project.id === 'zenith'} />
+          <span>
+            <strong>{project.name}</strong>
+            <small>{project.sublabel || `${pTasks.length} tasks`}</small>
+          </span>
+        </button>
+      </td>
+      <td>{pTasks.length} ({pDone} done)</td>
+      <td>{pNotes.length}</td>
+      <td>
+        <div className="project-progress-cell">
+          <strong>{pPct}%</strong>
+          <ProgressBar value={pPct} />
+        </div>
+      </td>
+      <td><StatusChip status={project.status || 'Needs time'} /></td>
+      <td style={{ textAlign: 'right' }}>
+        <button
+          className="icon-circle"
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          aria-label={`Edit ${project.name}`}
+          style={{ marginRight: 6 }}
+        >
+          <Pencil size={12} />
+        </button>
+        <button
+          className="icon-circle"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          aria-label={`Delete ${project.name}`}
+        >
+          <Trash2 size={12} />
+        </button>
+      </td>
+    </tr>
   );
 }
 
