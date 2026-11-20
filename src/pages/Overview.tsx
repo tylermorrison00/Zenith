@@ -355,6 +355,7 @@ export function OverviewPage() {
       cur.cardEl.releasePointerCapture(e.pointerId);
     } catch {}
 
+    cur.cardEl.style.transition = 'none';
     cur.cardEl.style.transform = '';
 
     if (cur.hasMoved && cur.currentHoverIndex !== cur.originIndex) {
