@@ -60,6 +60,16 @@ export function OverviewPage() {
     return [];
   });
 
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const touchDragRef = useRef<{
+    sourceKey: string;
+    sourceDone: boolean;
+    startX: number;
+    startY: number;
+    isMoving: boolean;
+  } | null>(null);
+
   const rawItems = useMemo(() => {
     const list: Array<{
       id: string;
@@ -165,6 +175,105 @@ export function OverviewPage() {
     });
   };
 
+  const reorderFlowItems = (sourceKey: string, targetKey: string) => {
+    if (sourceKey === targetKey) return;
+    const sourceItem = rawItems.find((i) => i.key === sourceKey);
+    const targetItem = rawItems.find((i) => i.key === targetKey);
+    if (!sourceItem || !targetItem) return;
+
+    // Rule: Done can only move within done section, pending/progress only within pending section
+    if (sourceItem.done !== targetItem.done) return;
+
+    setOrderKeys((prev) => {
+      const itemMap = new Map<string, typeof rawItems[0]>();
+      rawItems.forEach((i) => itemMap.set(i.key, i));
+
+      const allKeys = prev.filter((k) => itemMap.has(k));
+      rawItems.forEach((i) => {
+        if (!allKeys.includes(i.key)) allKeys.push(i.key);
+      });
+
+      const currentDoneKeys: string[] = [];
+      const currentPendingKeys: string[] = [];
+      allKeys.forEach((k) => {
+        const it = itemMap.get(k);
+        if (it?.done) currentDoneKeys.push(k);
+        else if (it) currentPendingKeys.push(k);
+      });
+
+      if (sourceItem.done) {
+        const fromIdx = currentDoneKeys.indexOf(sourceKey);
+        const toIdx = currentDoneKeys.indexOf(targetKey);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          currentDoneKeys.splice(fromIdx, 1);
+          currentDoneKeys.splice(toIdx, 0, sourceKey);
+        }
+      } else {
+        const fromIdx = currentPendingKeys.indexOf(sourceKey);
+        const toIdx = currentPendingKeys.indexOf(targetKey);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          currentPendingKeys.splice(fromIdx, 1);
+          currentPendingKeys.splice(toIdx, 0, sourceKey);
+        }
+      }
+
+      const newOrder = [...currentDoneKeys, ...currentPendingKeys];
+      try {
+        localStorage.setItem('zenith-flow-order', JSON.stringify(newOrder));
+      } catch {}
+      return newOrder;
+    });
+  };
+
+  const handleTouchStart = (item: typeof rawItems[0], e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    const touch = e.touches[0];
+    touchDragRef.current = {
+      sourceKey: item.key,
+      sourceDone: item.done,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      isMoving: false,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchDragRef.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchDragRef.current.startX);
+    const dy = Math.abs(touch.clientY - touchDragRef.current.startY);
+    if (!touchDragRef.current.isMoving && (dx > 10 || dy > 10)) {
+      touchDragRef.current.isMoving = true;
+      setDraggingKey(touchDragRef.current.sourceKey);
+    }
+    if (touchDragRef.current.isMoving) {
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cardElem = elem?.closest('[data-flow-key]') as HTMLElement | null;
+      if (cardElem) {
+        const targetKey = cardElem.getAttribute('data-flow-key');
+        const targetDone = cardElem.getAttribute('data-flow-done') === 'true';
+        if (targetKey && targetDone === touchDragRef.current.sourceDone && targetKey !== touchDragRef.current.sourceKey) {
+          setDropTargetKey(targetKey);
+        } else {
+          setDropTargetKey(null);
+        }
+      } else {
+        setDropTargetKey(null);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchDragRef.current && touchDragRef.current.isMoving && dropTargetKey) {
+      reorderFlowItems(touchDragRef.current.sourceKey, dropTargetKey);
+    }
+    touchDragRef.current = null;
+    setDraggingKey(null);
+    setDropTargetKey(null);
+  };
+
+
   const flowDetail = useMemo(() => {
     if (!flowItems.length) return 'No blocks planned';
     const doneCount = flowItems.filter((i) => i.done).length;
@@ -249,11 +358,63 @@ export function OverviewPage() {
             const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
             const isTop = (index % 2 === 0);
             const cat = isDone ? "done" : "focus";
+            const isDragging = draggingKey === item.key;
+            const isDropTarget = dropTargetKey === item.key;
             return (
-              <Fragment key={item.id}>
-                <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
+              <Fragment key={item.key}>
+                <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'} ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}>
                   <div
-                    className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`}
+                    className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''} ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}
+                    draggable={true}
+                    data-flow-key={item.key}
+                    data-flow-done={item.done ? 'true' : 'false'}
+                    onDragStart={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button')) {
+                        e.preventDefault();
+                        return;
+                      }
+                      e.dataTransfer.setData('text/plain', item.key);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggingKey(item.key);
+                    }}
+                    onDragOver={(e) => {
+                      if (!draggingKey) return;
+                      const draggingItem = rawItems.find((r) => r.key === draggingKey);
+                      if (draggingItem && draggingItem.done === item.done && draggingKey !== item.key) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (dropTargetKey !== item.key) {
+                          setDropTargetKey(item.key);
+                        }
+                      } else {
+                        e.dataTransfer.dropEffect = 'none';
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (dropTargetKey === item.key) {
+                        const related = e.relatedTarget as HTMLElement;
+                        if (!related || !e.currentTarget.contains(related)) {
+                          setDropTargetKey(null);
+                        }
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const sourceKey = e.dataTransfer.getData('text/plain') || draggingKey;
+                      if (sourceKey && sourceKey !== item.key) {
+                        reorderFlowItems(sourceKey, item.key);
+                      }
+                      setDraggingKey(null);
+                      setDropTargetKey(null);
+                    }}
+                    onDragEnd={() => {
+                      setDraggingKey(null);
+                      setDropTargetKey(null);
+                    }}
+                    onTouchStart={(e) => handleTouchStart(item, e)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                   >
                     {index > 0 && <span className="flow-pin flow-pin--left" />}
                     {index < Math.min(flowItems.length, 12) - 1 && <span className="flow-pin flow-pin--right" />}
@@ -266,6 +427,8 @@ export function OverviewPage() {
                           className="flow-check-badge is-done"
                           title="Click to uncheck"
                           aria-label={`Uncheck ${item.title}`}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
                             const now = Date.now();
@@ -282,6 +445,8 @@ export function OverviewPage() {
                           className="flow-active-checkbox"
                           aria-label={`Complete ${item.title}`}
                           title="Click to complete"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
                             const now = Date.now();
@@ -298,6 +463,8 @@ export function OverviewPage() {
                           className="flow-next-corner-target"
                           aria-label={`Complete ${item.title}`}
                           title="Click corner to complete"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
                             const now = Date.now();
