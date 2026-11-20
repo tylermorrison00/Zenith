@@ -496,6 +496,7 @@ export function OverviewPage() {
                           ? `translate3d(${shiftX}px, ${shiftY}px, 0)`
                           : 'translate3d(0px, 0px, 0)',
                         transition: isDraggingActive && !isItemDragged ? 'transform 0.28s cubic-bezier(0.2, 0, 0, 1)' : 'none',
+                        zIndex: isItemDragged ? 100 : 1,
                       }}
                     >
                       <div

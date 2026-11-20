@@ -1378,11 +1378,25 @@
   will-change: transform;
 }
 
+.flow-node-step.is-dragged-source {
+  z-index: 100 !important;
+}
+
 .flow-card.is-pointer-dragging {
   cursor: grabbing !important;
   z-index: 100 !important;
   box-shadow: 0 28px 65px rgba(0, 0, 0, 0.95), 0 0 35px rgba(var(--amber-rgb), 0.55) !important;
   transition: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.flow-card--done.is-pointer-dragging {
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(46, 229, 81, 0.6) !important;
 }
 
 .flow-curve-line--faded {
@@ -1393,10 +1407,6 @@
 .flow-pin--faded {
   opacity: 0 !important;
   transition: opacity 0.18s ease !important;
-}
-
-.flow-node-step.is-dragged-source {
-  opacity: 0.35 !important;
 }
 
 .flow-curve-line--reconnecting {
