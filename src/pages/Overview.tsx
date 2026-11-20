@@ -61,13 +61,17 @@ export function OverviewPage() {
   });
 
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
-  const touchDragRef = useRef<{
-    sourceKey: string;
-    sourceDone: boolean;
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  const [reconnectedKey, setReconnectedKey] = useState<string | null>(null);
+
+  const dragRef = useRef<{
+    key: string;
+    isDone: boolean;
     startX: number;
     startY: number;
-    isMoving: boolean;
+    cardEl: HTMLElement;
+    slot: number;
+    hasMoved: boolean;
   } | null>(null);
 
   const rawItems = useMemo(() => {
@@ -175,15 +179,7 @@ export function OverviewPage() {
     });
   };
 
-  const reorderFlowItems = (sourceKey: string, targetKey: string) => {
-    if (sourceKey === targetKey) return;
-    const sourceItem = rawItems.find((i) => i.key === sourceKey);
-    const targetItem = rawItems.find((i) => i.key === targetKey);
-    if (!sourceItem || !targetItem) return;
-
-    // Rule: Done can only move within done section, pending/progress only within pending section
-    if (sourceItem.done !== targetItem.done) return;
-
+  const applySlotMove = (sourceKey: string, slot: number, isDone: boolean) => {
     setOrderKeys((prev) => {
       const itemMap = new Map<string, typeof rawItems[0]>();
       rawItems.forEach((i) => itemMap.set(i.key, i));
@@ -201,19 +197,21 @@ export function OverviewPage() {
         else if (it) currentPendingKeys.push(k);
       });
 
-      if (sourceItem.done) {
+      if (isDone) {
         const fromIdx = currentDoneKeys.indexOf(sourceKey);
-        const toIdx = currentDoneKeys.indexOf(targetKey);
-        if (fromIdx !== -1 && toIdx !== -1) {
+        if (fromIdx !== -1) {
           currentDoneKeys.splice(fromIdx, 1);
-          currentDoneKeys.splice(toIdx, 0, sourceKey);
+          const insertIdx = fromIdx < slot ? slot - 1 : slot;
+          currentDoneKeys.splice(Math.max(0, Math.min(insertIdx, currentDoneKeys.length)), 0, sourceKey);
         }
       } else {
+        const doneCount = currentDoneKeys.length;
         const fromIdx = currentPendingKeys.indexOf(sourceKey);
-        const toIdx = currentPendingKeys.indexOf(targetKey);
-        if (fromIdx !== -1 && toIdx !== -1) {
+        if (fromIdx !== -1) {
           currentPendingKeys.splice(fromIdx, 1);
-          currentPendingKeys.splice(toIdx, 0, sourceKey);
+          const pendingSlot = slot - doneCount;
+          const insertIdx = fromIdx < pendingSlot ? pendingSlot - 1 : pendingSlot;
+          currentPendingKeys.splice(Math.max(0, Math.min(insertIdx, currentPendingKeys.length)), 0, sourceKey);
         }
       }
 
@@ -225,53 +223,103 @@ export function OverviewPage() {
     });
   };
 
-  const handleTouchStart = (item: typeof rawItems[0], e: React.TouchEvent) => {
+  const handlePointerDown = (item: typeof rawItems[0], index: number, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
-    const touch = e.touches[0];
-    touchDragRef.current = {
-      sourceKey: item.key,
-      sourceDone: item.done,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      isMoving: false,
+
+    const cardEl = e.currentTarget;
+    try {
+      cardEl.setPointerCapture(e.pointerId);
+    } catch {}
+
+    dragRef.current = {
+      key: item.key,
+      isDone: item.done,
+      startX: e.clientX,
+      startY: e.clientY,
+      cardEl,
+      slot: index,
+      hasMoved: false,
     };
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchDragRef.current) return;
-    const touch = e.touches[0];
-    const dx = Math.abs(touch.clientX - touchDragRef.current.startX);
-    const dy = Math.abs(touch.clientY - touchDragRef.current.startY);
-    if (!touchDragRef.current.isMoving && (dx > 10 || dy > 10)) {
-      touchDragRef.current.isMoving = true;
-      setDraggingKey(touchDragRef.current.sourceKey);
-    }
-    if (touchDragRef.current.isMoving) {
-      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      const cardElem = elem?.closest('[data-flow-key]') as HTMLElement | null;
-      if (cardElem) {
-        const targetKey = cardElem.getAttribute('data-flow-key');
-        const targetDone = cardElem.getAttribute('data-flow-done') === 'true';
-        if (targetKey && targetDone === touchDragRef.current.sourceDone && targetKey !== touchDragRef.current.sourceKey) {
-          setDropTargetKey(targetKey);
-        } else {
-          setDropTargetKey(null);
-        }
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const cur = dragRef.current;
+    if (!cur) return;
+
+    const dx = e.clientX - cur.startX;
+    const dy = e.clientY - cur.startY;
+
+    if (!cur.hasMoved) {
+      if (Math.hypot(dx, dy) > 4) {
+        cur.hasMoved = true;
+        setDraggingKey(cur.key);
       } else {
-        setDropTargetKey(null);
+        return;
       }
     }
+
+    cur.cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.05)`;
+
+    const wrapEl = cur.cardEl.closest('.flow-chain-wrap');
+    if (!wrapEl) return;
+
+    const nodeEls = Array.from(wrapEl.querySelectorAll('.flow-node-step')) as HTMLElement[];
+    const doneCount = flowItems.filter((i) => i.done).length;
+
+    const minSlot = cur.isDone ? 0 : doneCount;
+    const maxSlot = cur.isDone ? doneCount : flowItems.length;
+
+    let bestSlot = cur.slot;
+    let minDist = Infinity;
+
+    for (let s = minSlot; s <= maxSlot; s++) {
+      let slotX = 0;
+      if (s === 0) {
+        const firstRect = nodeEls[0]?.getBoundingClientRect();
+        slotX = firstRect ? firstRect.left : 0;
+      } else if (s === nodeEls.length) {
+        const lastRect = nodeEls[nodeEls.length - 1]?.getBoundingClientRect();
+        slotX = lastRect ? lastRect.right : 99999;
+      } else {
+        const prevRect = nodeEls[s - 1]?.getBoundingClientRect();
+        const nextRect = nodeEls[s]?.getBoundingClientRect();
+        slotX = (prevRect && nextRect) ? (prevRect.right + nextRect.left) / 2 : 0;
+      }
+
+      const dist = Math.abs(e.clientX - slotX);
+      if (dist < minDist) {
+        minDist = dist;
+        bestSlot = s;
+      }
+    }
+
+    cur.slot = bestSlot;
+    setTargetSlot(bestSlot);
   };
 
-  const handleTouchEnd = () => {
-    if (touchDragRef.current && touchDragRef.current.isMoving && dropTargetKey) {
-      reorderFlowItems(touchDragRef.current.sourceKey, dropTargetKey);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const cur = dragRef.current;
+    if (!cur) return;
+
+    try {
+      cur.cardEl.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    cur.cardEl.style.transform = '';
+
+    if (cur.hasMoved && cur.slot !== null) {
+      applySlotMove(cur.key, cur.slot, cur.isDone);
+      setReconnectedKey(cur.key);
+      setTimeout(() => setReconnectedKey(null), 500);
     }
-    touchDragRef.current = null;
+
+    dragRef.current = null;
     setDraggingKey(null);
-    setDropTargetKey(null);
+    setTargetSlot(null);
   };
+
 
 
   const flowDetail = useMemo(() => {
@@ -352,149 +400,114 @@ export function OverviewPage() {
       <Panel className="flow-panel">
         <div className="flow-panel-header"><CardHeading title="Today's flow" detail={flowDetail} /></div>
         {flowItems.length > 0
-          ? <div className="flow-chain-wrap">{flowItems.slice(0, 12).map((item, index) => {
-            const isDone = item.done;
-            const activeIdx = flowItems.findIndex((t) => !t.done);
-            const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
-            const isTop = (index % 2 === 0);
-            const cat = isDone ? "done" : "focus";
-            const isDragging = draggingKey === item.key;
-            const isDropTarget = dropTargetKey === item.key;
-            return (
-              <Fragment key={item.key}>
-                <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'} ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}>
-                  <div
-                    className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''} ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}
-                    draggable={true}
-                    data-flow-key={item.key}
-                    data-flow-done={item.done ? 'true' : 'false'}
-                    onDragStart={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.closest('button')) {
-                        e.preventDefault();
-                        return;
-                      }
-                      e.dataTransfer.setData('text/plain', item.key);
-                      e.dataTransfer.effectAllowed = 'move';
-                      setDraggingKey(item.key);
-                    }}
-                    onDragOver={(e) => {
-                      if (!draggingKey) return;
-                      const draggingItem = rawItems.find((r) => r.key === draggingKey);
-                      if (draggingItem && draggingItem.done === item.done && draggingKey !== item.key) {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        if (dropTargetKey !== item.key) {
-                          setDropTargetKey(item.key);
-                        }
-                      } else {
-                        e.dataTransfer.dropEffect = 'none';
-                      }
-                    }}
-                    onDragLeave={(e) => {
-                      if (dropTargetKey === item.key) {
-                        const related = e.relatedTarget as HTMLElement;
-                        if (!related || !e.currentTarget.contains(related)) {
-                          setDropTargetKey(null);
-                        }
-                      }
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const sourceKey = e.dataTransfer.getData('text/plain') || draggingKey;
-                      if (sourceKey && sourceKey !== item.key) {
-                        reorderFlowItems(sourceKey, item.key);
-                      }
-                      setDraggingKey(null);
-                      setDropTargetKey(null);
-                    }}
-                    onDragEnd={() => {
-                      setDraggingKey(null);
-                      setDropTargetKey(null);
-                    }}
-                    onTouchStart={(e) => handleTouchStart(item, e)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                  >
-                    {index > 0 && <span className="flow-pin flow-pin--left" />}
-                    {index < Math.min(flowItems.length, 12) - 1 && <span className="flow-pin flow-pin--right" />}
-                    <div className="flow-card-head">
-                      <span className={`flow-type-dot flow-type-dot--${cat}`} />
-                      <span className="flow-card-title">{item.title}</span>
-                      {isDone ? (
-                        <button
-                          type="button"
-                          className="flow-check-badge is-done"
-                          title="Click to uncheck"
-                          aria-label={`Uncheck ${item.title}`}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const now = Date.now();
-                            if (now - lastCheckClickTimeRef.current < 600) return;
-                            lastCheckClickTimeRef.current = now;
-                            handleUncheckItem(item);
-                          }}
-                        >
-                          <Check size={11} strokeWidth={2.8} />
-                        </button>
-                      ) : isActive ? (
-                        <button
-                          type="button"
-                          className="flow-active-checkbox"
-                          aria-label={`Complete ${item.title}`}
-                          title="Click to complete"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const now = Date.now();
-                            if (now - lastCheckClickTimeRef.current < 600) return;
-                            lastCheckClickTimeRef.current = now;
-                            handleCompleteItem(item);
-                          }}
-                        >
-                          <Check size={11} strokeWidth={2.5} />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="flow-next-corner-target"
-                          aria-label={`Complete ${item.title}`}
-                          title="Click corner to complete"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const now = Date.now();
-                            if (now - lastCheckClickTimeRef.current < 600) return;
-                            lastCheckClickTimeRef.current = now;
-                            handleCompleteItem(item);
-                          }}
-                        />
-                      )}
+          ? <div className="flow-chain-wrap">
+              {targetSlot === 0 && <div className="flow-drop-beam-indicator flow-drop-beam-indicator--start" />}
+              {flowItems.slice(0, 12).map((item, index) => {
+                const isDone = item.done;
+                const activeIdx = flowItems.findIndex((t) => !t.done);
+                const isActive = !isDone && (index === activeIdx || (activeIdx === -1 && index === 0));
+                const isTop = (index % 2 === 0);
+                const cat = isDone ? "done" : "focus";
+
+                const draggingIndex = draggingKey ? flowItems.findIndex((it) => it.key === draggingKey) : -1;
+                const isItemDragged = draggingKey === item.key;
+                const isLeftPinDisconnected = isItemDragged || (draggingIndex !== -1 && index - 1 === draggingIndex);
+                const isRightPinDisconnected = isItemDragged || (draggingIndex !== -1 && index + 1 === draggingIndex);
+                const isConnectorDisconnected = (draggingIndex !== -1 && (index === draggingIndex || index + 1 === draggingIndex));
+                const isReconnecting = (reconnectedKey && (flowItems[index]?.key === reconnectedKey || flowItems[index + 1]?.key === reconnectedKey));
+
+                return (
+                  <Fragment key={item.key}>
+                    <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'} ${isItemDragged ? 'is-dragged-source' : ''}`}>
+                      <div
+                        className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''} ${isItemDragged ? 'is-pointer-dragging' : ''}`}
+                        onPointerDown={(e) => handlePointerDown(item, index, e)}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                      >
+                        {index > 0 && <span className={`flow-pin flow-pin--left ${isLeftPinDisconnected ? 'flow-pin--disconnected' : ''}`} />}
+                        {index < Math.min(flowItems.length, 12) - 1 && <span className={`flow-pin flow-pin--right ${isRightPinDisconnected ? 'flow-pin--disconnected' : ''}`} />}
+                        <div className="flow-card-head">
+                          <span className={`flow-type-dot flow-type-dot--${cat}`} />
+                          <span className="flow-card-title">{item.title}</span>
+                          {isDone ? (
+                            <button
+                              type="button"
+                              className="flow-check-badge is-done"
+                              title="Click to uncheck"
+                              aria-label={`Uncheck ${item.title}`}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const now = Date.now();
+                                if (now - lastCheckClickTimeRef.current < 600) return;
+                                lastCheckClickTimeRef.current = now;
+                                handleUncheckItem(item);
+                              }}
+                            >
+                              <Check size={11} strokeWidth={2.8} />
+                            </button>
+                          ) : isActive ? (
+                            <button
+                              type="button"
+                              className="flow-active-checkbox"
+                              aria-label={`Complete ${item.title}`}
+                              title="Click to complete"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const now = Date.now();
+                                if (now - lastCheckClickTimeRef.current < 600) return;
+                                lastCheckClickTimeRef.current = now;
+                                handleCompleteItem(item);
+                              }}
+                            >
+                              <Check size={11} strokeWidth={2.5} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="flow-next-corner-target"
+                              aria-label={`Complete ${item.title}`}
+                              title="Click corner to complete"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onTouchStart={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const now = Date.now();
+                                if (now - lastCheckClickTimeRef.current < 600) return;
+                                lastCheckClickTimeRef.current = now;
+                                handleCompleteItem(item);
+                              }}
+                            />
+                          )}
+                        </div>
+                        {isActive && (
+                          <div className="flow-card-footer">
+                            <span className="flow-time-left">{item.kind === 'habit' ? 'Habit in progress' : 'Task in progress'}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {isActive && (
-                      <div className="flow-card-footer">
-                        <span className="flow-time-left">{item.kind === 'habit' ? 'Habit in progress' : 'Task in progress'}</span>
+                    {index < Math.min(flowItems.length, 12) - 1 && (
+                      <div className="flow-connector-wrap">
+                        {targetSlot === index + 1 && <div className="flow-drop-beam-indicator" />}
+                        <svg className="flow-connector-svg" viewBox="0 0 46 150">
+                          <path
+                            d={isTop ? "M 0 45 C 23 45, 23 105, 46 105" : "M 0 105 C 23 105, 23 45, 46 45"}
+                            className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'} ${isConnectorDisconnected ? 'flow-curve-line--disconnected' : ''} ${isReconnecting ? 'flow-curve-line--reconnecting' : ''}`}
+                          />
+                        </svg>
                       </div>
                     )}
-                  </div>
-                </div>
-                {index < Math.min(flowItems.length, 12) - 1 && (
-                  <div className="flow-connector-wrap">
-                    <svg className="flow-connector-svg" viewBox="0 0 46 150">
-                      <path
-                        d={isTop ? "M 0 45 C 23 45, 23 105, 46 105" : "M 0 105 C 23 105, 23 45, 46 45"}
-                        className={`flow-curve-line ${isDone ? 'flow-curve-line--done' : isActive ? 'flow-curve-line--active' : 'flow-curve-line--future'}`}
-                      />
-                    </svg>
-                  </div>
-                )}
-              </Fragment>
-            );
-          })}</div>
+                  </Fragment>
+                );
+              })}
+              {targetSlot === Math.min(flowItems.length, 12) && <div className="flow-drop-beam-indicator flow-drop-beam-indicator--end" />}
+            </div>
           : <div className="library-no-results">Nothing on the flow yet — add a habit or task to plan your day.</div>}
       </Panel>
 
