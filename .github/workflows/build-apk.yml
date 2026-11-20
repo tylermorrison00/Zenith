@@ -38,6 +38,15 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
+      - name: Setup Persistent Signing Keystore & Gradle Config
+        run: |
+          python3 scripts/setup-signing.py "1.0.7" 10007
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add keystore/zenith.keystore || true
+          git commit -m "chore: persist android signing keystore [skip ci]" || true
+          git push origin main || true
+
       - name: Generate Official Zenith App Icons
         run: |
           pip install Pillow || pip3 install Pillow --break-system-packages || true
@@ -71,7 +80,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.6 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.6" \
-            --notes "Zenith Android Mobile Update: Fixed projects page crash, transparent logo background with no box, and native in-app auto updater. Download Zenith.apk to update." || \
-          gh release upload android-v1.0.6 release-apk/Zenith.apk --clobber
+          gh release create android-v1.0.7 release-apk/Zenith.apk \
+            --title "Zenith Android v1.0.7" \
+            --notes "Zenith Android Mobile Update: Persistent signing key (no package conflicts), projects section fix, transparent icon, in-app updater. Download Zenith.apk to update." || \
+          gh release upload android-v1.0.7 release-apk/Zenith.apk --clobber
