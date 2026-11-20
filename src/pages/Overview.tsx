@@ -462,7 +462,6 @@ export function OverviewPage() {
                 const isDraggingActive = Boolean(draggingKey);
 
                 let shiftX = 0;
-                let shiftY = 0;
                 if (draggingKey && !isItemDragged && hoverIndex !== null && draggingOriginIndex !== -1) {
                   let deltaSlots = 0;
                   if (draggingOriginIndex < hoverIndex) {
@@ -477,9 +476,6 @@ export function OverviewPage() {
 
                   if (deltaSlots !== 0) {
                     shiftX = deltaSlots * 246;
-                    if (Math.abs(deltaSlots) % 2 === 1) {
-                      shiftY = isTop ? 60 : -60;
-                    }
                   }
                 }
 
@@ -490,8 +486,8 @@ export function OverviewPage() {
                     <div
                       className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'} ${isItemDragged ? 'is-dragged-source' : ''}`}
                       style={{
-                        transform: !isItemDragged && (shiftX !== 0 || shiftY !== 0)
-                          ? `translate3d(${shiftX}px, ${shiftY}px, 0)`
+                        transform: !isItemDragged && shiftX !== 0
+                          ? `translate3d(${shiftX}px, 0px, 0)`
                           : 'translate3d(0px, 0px, 0)',
                         transition: isDraggingActive && !isItemDragged ? 'transform 0.28s cubic-bezier(0.2, 0, 0, 1)' : 'none',
                       }}
