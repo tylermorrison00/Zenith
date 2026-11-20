@@ -10,6 +10,10 @@
 .flow-pin--right{right:-5px!important}
 .flow-curve-line{stroke-width:2.2px!important}
 .flow-curve-btn{display:none!important}
+.flow-active-checkbox{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:rgba(var(--amber-rgb),.12);border:1.5px solid rgba(var(--amber-rgb),.7);color:var(--amber);margin-left:auto;cursor:pointer;padding:0;line-height:0;transition:all .18s ease;box-shadow:0 0 6px rgba(var(--amber-rgb),.25)}
+.flow-active-checkbox:hover{background:var(--amber);color:#040303;border-color:var(--amber);transform:scale(1.12);box-shadow:0 0 10px rgba(var(--amber-rgb),.7)}
+.flow-check-badge{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:rgba(46,229,157,.18);border:1.5px solid #2ee59d;color:#2ee59d;margin-left:auto;cursor:pointer;padding:0;line-height:0;transition:all .18s ease}
+.flow-check-badge:hover{background:#2ee59d;color:#040303;box-shadow:0 0 8px rgba(46,229,157,.6)}
 
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px}
 .project-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:13px 13px 11px;color:var(--text);text-align:left;border:1px solid rgba(226,217,208,.08);border-radius:14px;background:linear-gradient(145deg,#181716,#100f0e);transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease;cursor:pointer;user-select:none}

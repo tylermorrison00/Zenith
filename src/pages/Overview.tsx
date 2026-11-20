@@ -181,9 +181,7 @@ export function OverviewPage() {
                   <div
                     className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`}
                     onClick={() => {
-                      if (item.kind === 'habit') {
-                        toggleHabit(item.id);
-                      } else {
+                      if (item.kind === 'task') {
                         navigate('/focus');
                       }
                     }}
@@ -194,29 +192,33 @@ export function OverviewPage() {
                       <span className={`flow-type-dot flow-type-dot--${cat}`} />
                       <span className="flow-card-title">{item.title}</span>
                       {isDone ? (
-                        <span
-                          className="flow-check-badge"
+                        <button
+                          type="button"
+                          className="flow-check-badge is-done"
+                          title="Completed"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (item.kind === 'habit') toggleHabit(item.id);
                             else toggleTask(item.id);
                           }}
                         >
-                          <Check size={10} />
-                        </span>
-                      ) : (
-                        <span
-                          className="flow-card-menu-dots"
+                          <Check size={11} strokeWidth={2.8} />
+                        </button>
+                      ) : isActive ? (
+                        <button
+                          type="button"
+                          className="flow-active-checkbox"
+                          aria-label={`Complete ${item.title}`}
+                          title="Click to complete"
                           onClick={(e) => {
-                            if (item.kind === 'habit') {
-                              e.stopPropagation();
-                              toggleHabit(item.id);
-                            }
+                            e.stopPropagation();
+                            if (item.kind === 'habit') toggleHabit(item.id);
+                            else toggleTask(item.id);
                           }}
                         >
-                          {item.kind === 'habit' ? '○' : '···'}
-                        </span>
-                      )}
+                          <Check size={11} strokeWidth={2.5} />
+                        </button>
+                      ) : null}
                     </div>
                     {isActive && (
                       <>
