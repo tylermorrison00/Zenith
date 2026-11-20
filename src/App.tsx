@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { DashboardProvider } from './state/DashboardContext';
 import { Header, Toast } from './components/Shared';
 import { TitleBar } from './components/TitleBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { OverviewPage } from './pages/Overview';
 import { TasksPage } from './pages/Tasks';
 import { HabitsPage } from './pages/Habits';
@@ -90,23 +91,25 @@ export function App() {
   }
 
   return (
-    <DashboardProvider>
-      <HashRouter>
-        <TitleBar theme={theme} />
-        {authState === 'loading' ? (
-          <div className="auth-loading" aria-label="Loading Zenith">
-            <img src={themeLogo(theme)} alt="Zenith" />
-            <p>Loading your workspace…</p>
-          </div>
-        ) : authState === 'signed-in' ? (
-          <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} />
-        ) : (
-          <>
-            <OnboardingPage onComplete={() => setAuthState('signed-in')} theme={theme} />
-            <Toast />
-          </>
-        )}
-      </HashRouter>
-    </DashboardProvider>
+    <ErrorBoundary>
+      <DashboardProvider>
+        <HashRouter>
+          <TitleBar theme={theme} />
+          {authState === 'loading' ? (
+            <div className="auth-loading" aria-label="Loading Zenith">
+              <img src={themeLogo(theme)} alt="Zenith" />
+              <p>Loading your workspace…</p>
+            </div>
+          ) : authState === 'signed-in' ? (
+            <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} />
+          ) : (
+            <>
+              <OnboardingPage onComplete={() => setAuthState('signed-in')} theme={theme} />
+              <Toast />
+            </>
+          )}
+        </HashRouter>
+      </DashboardProvider>
+    </ErrorBoundary>
   );
 }

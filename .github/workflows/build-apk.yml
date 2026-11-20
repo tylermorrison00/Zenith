@@ -71,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.4 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.4" \
-            --notes "Zenith Android Mobile Update: In-app auto updater (no Chrome redirect), full cloud data sync with laptop tasks and habits. Download Zenith.apk to update." || \
-          gh release upload android-v1.0.4 release-apk/Zenith.apk --clobber
+          gh release create android-v1.0.5 release-apk/Zenith.apk \
+            --title "Zenith Android v1.0.5" \
+            --notes "Zenith Android Mobile Update: Fixed black screen on login, clean white background app icon, and in-app updater. Download Zenith.apk to update." || \
+          gh release upload android-v1.0.5 release-apk/Zenith.apk --clobber

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, SquareArrowOutUpRight, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
@@ -130,7 +130,7 @@ export function OverviewPage() {
             const types = ["focus", "focus", "meeting", "break", "focus", "break"];
             const cat = isDone ? "done" : isActive ? "focus" : types[index % types.length];
             return (
-              <React.Fragment key={task.id}>
+              <Fragment key={task.id}>
                 <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
                   <div className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`} onClick={() => navigate('/focus')}>
                     {index > 0 && <span className="flow-pin flow-pin--left" />}
@@ -164,7 +164,7 @@ export function OverviewPage() {
                     <button className="flow-curve-btn" onClick={(e) => { e.stopPropagation(); navigate('/focus'); }}>+</button>
                   </div>
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           })}</div>
           : <div className="library-no-results">Nothing on the flow yet — add a task to plan your day.</div>}

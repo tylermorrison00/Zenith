@@ -19,36 +19,36 @@ if not os.path.exists(logo_path):
 
 base_img = Image.open(logo_path).convert("RGBA")
 
-# 1. Update background color XML
+# 1. Update background color XML to clean white (#FFFFFF)
 bg_xml_dir = "android/app/src/main/res/values"
 os.makedirs(bg_xml_dir, exist_ok=True)
 with open(os.path.join(bg_xml_dir, "ic_launcher_background.xml"), "w", encoding="utf-8") as f:
-    f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#070606</color>\n</resources>\n')
+    f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
 
 # Density mappings: (standard_size, adaptive_canvas_size, adaptive_inner_size)
 densities = {
-    "mdpi": (48, 108, 72),
-    "hdpi": (72, 162, 108),
-    "xhdpi": (96, 216, 144),
-    "xxhdpi": (144, 324, 216),
-    "xxxhdpi": (192, 432, 288),
+    "mdpi": (48, 108, 62),
+    "hdpi": (72, 162, 94),
+    "xhdpi": (96, 216, 126),
+    "xxhdpi": (144, 324, 188),
+    "xxxhdpi": (192, 432, 250),
 }
 
 for density, (size, canvas_size, inner_size) in densities.items():
     dir_path = f"android/app/src/main/res/mipmap-{density}"
     os.makedirs(dir_path, exist_ok=True)
     
-    # Standard & Round icon: dark background #070606 + centered logo
-    icon_bg = Image.new("RGBA", (size, size), (7, 6, 6, 255))
+    # Standard & Round icon: clean white background #FFFFFF + centered logo
+    icon_bg = Image.new("RGBA", (size, size), (255, 255, 255, 255))
     logo_resized = base_img.copy()
-    inner_dim = int(size * 0.8)
+    inner_dim = int(size * 0.72)
     logo_resized.thumbnail((inner_dim, inner_dim), Image.Resampling.LANCZOS)
     offset = ((size - logo_resized.width) // 2, (size - logo_resized.height) // 2)
     icon_bg.paste(logo_resized, offset, logo_resized)
     icon_bg.save(os.path.join(dir_path, "ic_launcher.png"), "PNG")
     icon_bg.save(os.path.join(dir_path, "ic_launcher_round.png"), "PNG")
     
-    # Adaptive Foreground icon: transparent background + centered logo
+    # Adaptive Foreground icon: transparent background + centered logo inside safe zone
     fg_canvas = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     fg_logo = base_img.copy()
     fg_logo.thumbnail((inner_size, inner_size), Image.Resampling.LANCZOS)
