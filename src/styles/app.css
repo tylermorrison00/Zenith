@@ -14,13 +14,12 @@
 .flow-curve-btn{display:none!important}
 .flow-active-checkbox{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:rgba(var(--amber-rgb),.12);border:1.5px solid rgba(var(--amber-rgb),.7);color:var(--amber);margin-left:auto;cursor:pointer;padding:0;line-height:0;transition:all .18s ease;box-shadow:0 0 6px rgba(var(--amber-rgb),.25)}
 .flow-active-checkbox:hover{background:var(--amber);color:#040303;border-color:var(--amber);transform:scale(1.12);box-shadow:0 0 10px rgba(var(--amber-rgb),.7)}
-.flow-check-badge{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:rgba(var(--amber-rgb),.28);border:1.5px solid var(--amber);color:var(--amber);margin-left:auto;cursor:default;user-select:none;padding:0;line-height:0;box-shadow:0 0 6px rgba(var(--amber-rgb),.35)}
-.flow-card--done{background:var(--amber)!important;border:1px solid rgba(0,0,0,.15)!important;border-top:1px solid rgba(255,255,255,.35)!important;box-shadow:0 6px 20px rgba(var(--amber-rgb),.35),0 12px 32px rgba(0,0,0,.45)!important;color:var(--accent-ink,#040303)!important}
-.flow-card--done:hover{background:var(--accent-hi,var(--amber))!important;box-shadow:0 8px 24px rgba(var(--amber-rgb),.45),0 14px 36px rgba(0,0,0,.55)!important}
-.flow-card--done .flow-card-title{color:var(--accent-ink,#040303)!important;font-weight:700!important}
-.flow-card--done .flow-type-dot--done{background:var(--accent-ink,#040303)!important;box-shadow:none!important}
-.flow-card--done .flow-check-badge{background:var(--accent-ink,#040303)!important;border:1px solid var(--accent-ink,#040303)!important;color:var(--amber)!important;box-shadow:0 2px 6px rgba(0,0,0,.25)!important}
-.flow-node-step--done .flow-pin{background:var(--amber)!important;box-shadow:0 0 7px rgba(var(--amber-rgb),.8)!important}
+.flow-check-badge{display:grid;place-items:center;width:19px;height:19px;border-radius:6px;background:rgba(var(--amber-rgb),.15)!important;border:1.5px solid var(--amber)!important;color:var(--amber)!important;margin-left:auto;cursor:default;user-select:none;padding:0;line-height:0;box-shadow:0 0 8px rgba(var(--amber-rgb),.3)!important}
+.flow-card--done{background:linear-gradient(180deg,rgba(34,32,30,.85) 0%,rgba(18,17,16,.96) 100%)!important;backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important;border:1px solid rgba(var(--amber-rgb),.32)!important;border-top:1px solid rgba(255,255,255,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 16px rgba(var(--amber-rgb),.12),0 8px 24px rgba(0,0,0,.45)!important;color:var(--text)!important}
+.flow-card--done:hover{transform:translateY(-2px)!important;border-color:rgba(var(--amber-rgb),.5)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 20px rgba(var(--amber-rgb),.2),0 12px 28px rgba(0,0,0,.55)!important}
+.flow-card--done .flow-card-title{color:#ede7df!important;font-size:11px!important;font-weight:500!important}
+.flow-card--done .flow-type-dot--done{background:var(--amber)!important;box-shadow:0 0 6px rgba(var(--amber-rgb),.6)!important}
+.flow-node-step--done .flow-pin{background:var(--amber)!important;border-color:#0e0d0c!important;box-shadow:0 0 7px rgba(var(--amber-rgb),.8)!important}
 .flow-type-dot--done{background:var(--amber)!important;box-shadow:0 0 6px rgba(var(--amber-rgb),.6)!important}
 .flow-curve-line--done{stroke:var(--amber)!important;stroke-width:2.2px!important;filter:drop-shadow(0 0 8px rgba(var(--amber-rgb),.6))!important}
 
