@@ -493,7 +493,7 @@ export function OverviewPage() {
                         transform: !isItemDragged && (shiftX !== 0 || shiftY !== 0)
                           ? `translate3d(${shiftX}px, ${shiftY}px, 0)`
                           : 'translate3d(0px, 0px, 0)',
-                        transition: isItemDragged ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0, 0, 1)',
+                        transition: isDraggingActive && !isItemDragged ? 'transform 0.28s cubic-bezier(0.2, 0, 0, 1)' : 'none',
                       }}
                     >
                       <div
