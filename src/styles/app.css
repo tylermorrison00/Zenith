@@ -1339,3 +1339,19 @@
     margin: 16px auto !important;
   }
 }
+
+.flow-panel-header {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.flow-chain-wrap {
+  padding-top: 56px !important;
+  margin-top: -36px !important;
+  padding-bottom: 24px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  min-height: 225px !important;
+}
+
