@@ -33,6 +33,17 @@ jobs:
       - name: Build Web Application
         run: npx vite build
 
+      - name: Upload Web Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zenith-Web-Dist
+          path: dist
+
+      - name: Archive Web Dist
+        run: |
+          mkdir -p release-apk
+          cd dist && zip -r ../release-apk/Zenith-Web-Dist.zip . && cd ..
+
       - name: Setup Capacitor Android
         run: |
           npx cap add android || true
@@ -80,7 +91,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create android-v1.0.8 release-apk/Zenith.apk \
-            --title "Zenith Android v1.0.8" \
-            --notes "Zenith Android Mobile Update: Habits placed first in Today's flow before tasks. Download Zenith.apk to update." || \
-          gh release upload android-v1.0.8 release-apk/Zenith.apk --clobber
+          gh release create android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip \
+            --title "Zenith Android & Desktop v1.0.8" \
+            --notes "Zenith Update: Habits placed first in Today's flow before tasks. Available for mobile (APK) and laptop." || \
+          gh release upload android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber
+
+  build-windows:
+    name: Build Windows Setup
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Pack Windows Executable
+        run: npm run pack
+
+      - name: Publish Windows Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $installer = Get-ChildItem -Path release -Filter "Zenith*Setup*.exe" | Select-Object -First 1
+          if ($installer) {
+            $destName = "Zenith.Setup.1.0.8.exe"
+            Copy-Item $installer.FullName -Destination "release/$destName"
+            gh release upload android-v1.0.8 "release/$destName" --repo tylermorrison00/Zenith --clobber
+          }
