@@ -254,11 +254,6 @@ export function OverviewPage() {
                 <div className={`flow-node-step ${isTop ? 'flow-node-step--top' : 'flow-node-step--bottom'} ${isDone ? 'flow-node-step--done' : isActive ? 'flow-node-step--active' : 'flow-node-step--normal'}`}>
                   <div
                     className={`flow-card ${isDone ? 'flow-card--done' : isActive ? 'flow-card--active' : ''}`}
-                    onClick={() => {
-                      if (item.kind === 'task') {
-                        navigate('/focus');
-                      }
-                    }}
                   >
                     {index > 0 && <span className="flow-pin flow-pin--left" />}
                     {index < Math.min(flowItems.length, 12) - 1 && <span className="flow-pin flow-pin--right" />}

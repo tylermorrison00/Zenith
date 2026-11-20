@@ -27,6 +27,7 @@
 .flow-next-corner-target{position:absolute!important;top:0!important;right:0!important;width:44px!important;height:38px!important;background:transparent!important;border:0!important;outline:0!important;cursor:pointer!important;z-index:5!important;border-top-right-radius:15px!important;padding:0!important}
 .flow-check-badge{cursor:pointer!important;pointer-events:auto!important;transition:transform .16s ease!important}
 .flow-check-badge:hover{transform:scale(1.15)!important}
+.flow-card{cursor:default!important}
 
 .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px}
 .project-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:13px 13px 11px;color:var(--text);text-align:left;border:1px solid rgba(226,217,208,.08);border-radius:14px;background:linear-gradient(145deg,#181716,#100f0e);transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease;cursor:pointer;user-select:none}
