@@ -124,7 +124,16 @@ export function OverviewPage() {
     const allKeys = orderKeys.filter((k) => itemMap.has(k));
     rawItems.forEach((i) => {
       if (!allKeys.includes(i.key)) {
-        allKeys.push(i.key);
+        if (i.kind === 'habit') {
+          const firstTaskIdx = allKeys.findIndex((k) => k.startsWith('task:'));
+          if (firstTaskIdx !== -1) {
+            allKeys.splice(firstTaskIdx, 0, i.key);
+          } else {
+            allKeys.push(i.key);
+          }
+        } else {
+          allKeys.push(i.key);
+        }
       }
     });
 
@@ -143,6 +152,38 @@ export function OverviewPage() {
 
     return [...doneItems, ...pendingItems];
   }, [rawItems, orderKeys]);
+
+  useEffect(() => {
+    const itemMap = new Map<string, typeof rawItems[0]>();
+    rawItems.forEach((i) => itemMap.set(i.key, i));
+
+    const currentKeys = orderKeys.filter((k) => itemMap.has(k));
+    let changed = currentKeys.length !== orderKeys.length;
+
+    rawItems.forEach((i) => {
+      if (!currentKeys.includes(i.key)) {
+        changed = true;
+        if (i.kind === 'habit') {
+          const firstTaskIdx = currentKeys.findIndex((k) => k.startsWith('task:'));
+          if (firstTaskIdx !== -1) {
+            currentKeys.splice(firstTaskIdx, 0, i.key);
+          } else {
+            currentKeys.push(i.key);
+          }
+        } else {
+          currentKeys.push(i.key);
+        }
+      }
+    });
+
+    if (changed || (!orderKeys.length && rawItems.length > 0)) {
+      setOrderKeys(currentKeys);
+      try {
+        localStorage.setItem('zenith-flow-order', JSON.stringify(currentKeys));
+      } catch {}
+    }
+  }, [rawItems, orderKeys]);
+
 
   const handleCompleteItem = (item: { id: string; kind: 'habit' | 'task'; key: string }) => {
     if (item.kind === 'habit') toggleHabit(item.id);
@@ -186,7 +227,18 @@ export function OverviewPage() {
 
       const allKeys = prev.filter((k) => itemMap.has(k));
       rawItems.forEach((i) => {
-        if (!allKeys.includes(i.key)) allKeys.push(i.key);
+        if (!allKeys.includes(i.key)) {
+          if (i.kind === 'habit') {
+            const firstTaskIdx = allKeys.findIndex((k) => k.startsWith('task:'));
+            if (firstTaskIdx !== -1) {
+              allKeys.splice(firstTaskIdx, 0, i.key);
+            } else {
+              allKeys.push(i.key);
+            }
+          } else {
+            allKeys.push(i.key);
+          }
+        }
       });
 
       const currentDoneKeys: string[] = [];
