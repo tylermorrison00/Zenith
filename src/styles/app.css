@@ -1899,3 +1899,12 @@
   align-items: center;
   gap: 5px;
 }
+
+.overview-focus-column .overview-heading-row {
+  margin-top: -6px;
+  margin-bottom: 10px;
+}
+.overview-focus-column .overview-heading-row .display-title {
+  margin-top: 0;
+  line-height: 1;
+}

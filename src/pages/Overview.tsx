@@ -1,11 +1,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
-import { currentWeekNumber } from '../lib/dates';
 import { useDashboard } from '../state/DashboardContext';
 import { completedTasksBeforeVisibleList } from '../data/seed';
 
@@ -78,7 +77,6 @@ function MetricCard({ title, value, unit, foot, points, delta }: { title: string
 export function OverviewPage() {
   const navigate = useNavigate();
   const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, timer, notify } = useDashboard();
-  const [week, setWeek] = useState(() => currentWeekNumber());
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [trackIndex, setTrackIndex] = useState(0);
@@ -649,7 +647,6 @@ export function OverviewPage() {
       <section className="overview-focus-column">
         <div className="overview-heading-row">
           <h1 className="display-title display-title--italic">Today's focus</h1>
-          <div className="week-pill"><button aria-label="Previous week" onClick={() => setWeek((value) => value - 1)}><ChevronLeft size={13} /></button><span>Week {week}</span><button aria-label="Next week" onClick={() => setWeek((value) => value + 1)}><ChevronRight size={13} /></button></div>
         </div>
         <div className="overview-metrics">
           <MetricCard title="Deep work today" value="0.0" unit="h" foot="No sessions yet" points={[]} />
