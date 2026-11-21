@@ -77,13 +77,13 @@ function MetricCard({ title, value, unit, foot, points, delta }: { title: string
 
 export function OverviewPage() {
   const navigate = useNavigate();
-  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, timer, startTimer, notify } = useDashboard();
+  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, timer, notify } = useDashboard();
   const [week, setWeek] = useState(() => currentWeekNumber());
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [trackIndex, setTrackIndex] = useState(0);
-  const [trackSeconds, setTrackSeconds] = useState(18 * 60 + 24);
-  const totalSeconds = 70 * 60;
+  const [trackSeconds, setTrackSeconds] = useState(0);
+  const totalSeconds = 60 * 60;
 
   useEffect(() => {
     if (!audioPlaying) return;
@@ -647,6 +647,25 @@ export function OverviewPage() {
             ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>
             : <div className="library-no-results">No tasks yet — add your first one.</div>)}
         </Panel>
+      </aside>
+
+      <section className="overview-focus-column">
+        <div className="overview-heading-row">
+          <div><PageEyebrow>{todayLabel()}</PageEyebrow><h1 className="display-title display-title--italic">Today's focus</h1></div>
+          <div className="week-pill"><button aria-label="Previous week" onClick={() => setWeek((value) => value - 1)}><ChevronLeft size={13} /></button><span>Week {week}</span><button aria-label="Next week" onClick={() => setWeek((value) => value + 1)}><ChevronRight size={13} /></button></div>
+        </div>
+        <div className="overview-metrics">
+          <MetricCard title="Deep work today" value="0.0" unit="h" foot="No sessions yet" points={[]} />
+          <MetricCard title="Focus score" value="0" unit="/100" foot="No sessions yet" points={[]} />
+        </div>
+      </section>
+
+      <aside className="overview-insights-column">
+        <Panel className="insight-card">
+          <div className="insight-card-top"><span>Insight</span><button aria-label="Open insight details" className="insight-arrow" onClick={() => navigate('/review')}><ArrowUpRight size={14} /></button></div>
+          <div className="insight-text">{hasData ? 'Your pattern will appear here.' : 'No insight yet.'}</div>
+          <small>{hasData ? 'Based on your sessions so far' : 'Complete a few focus sessions and Zenith will spot your pattern'}</small>
+        </Panel>
         <div className={`music-player-card ${audioPlaying ? 'is-playing' : ''}`}>
           <div className="music-player-top">
             <div className="music-player-art">
@@ -734,30 +753,6 @@ export function OverviewPage() {
             </button>
           </div>
         </div>
-      </aside>
-
-      <section className="overview-focus-column">
-        <div className="overview-heading-row">
-          <div><PageEyebrow>{todayLabel()}</PageEyebrow><h1 className="display-title display-title--italic">Today's focus</h1></div>
-          <div className="week-pill"><button aria-label="Previous week" onClick={() => setWeek((value) => value - 1)}><ChevronLeft size={13} /></button><span>Week {week}</span><button aria-label="Next week" onClick={() => setWeek((value) => value + 1)}><ChevronRight size={13} /></button></div>
-        </div>
-        <div className="overview-metrics">
-          <MetricCard title="Deep work today" value="0.0" unit="h" foot="No sessions yet" points={[]} />
-          <MetricCard title="Focus score" value="0" unit="/100" foot="No sessions yet" points={[]} />
-        </div>
-      </section>
-
-      <aside className="overview-insights-column">
-        <Panel className="insight-card">
-          <div className="insight-card-top"><span>Insight</span><button aria-label="Open insight details" className="insight-arrow" onClick={() => navigate('/review')}><ArrowUpRight size={14} /></button></div>
-          <div className="insight-text">{hasData ? 'Your pattern will appear here.' : 'No insight yet.'}</div>
-          <small>{hasData ? 'Based on your sessions so far' : 'Complete a few focus sessions and Zenith will spot your pattern'}</small>
-        </Panel>
-        <button className="next-block-card" onClick={() => { startTimer(); navigate('/focus'); }}>
-          <div className="next-block-top"><span>Next block</span><span className="icon-circle"><ArrowUpRight size={14} /></span></div>
-          <div className="next-block-copy">No deep block<br />scheduled yet.</div>
-          <div className="next-block-meta"><span className="next-play"><Play size={12} fill="currentColor" /></span><span>Add a project to plan your first block</span></div>
-        </button>
       </aside>
     </div>
 

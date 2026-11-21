@@ -19,14 +19,18 @@ function makeNoiseBuffer(ctx: AudioContext, brown: boolean): AudioBuffer {
 }
 
 export async function startAmbientSound(): Promise<void> {
-  const AudioContextClass = window.AudioContext;
+  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextClass) throw new Error('Web Audio is not available in this browser.');
-  if (!context) context = new AudioContextClass();
-  await context.resume();
+  if (!context || context.state === 'closed') {
+    context = new AudioContextClass();
+  }
+  if (context.state === 'suspended') {
+    await context.resume();
+  }
   stopAmbientSound();
 
   const master = context.createGain();
-  master.gain.value = 0.42;
+  master.gain.value = 0.5;
   master.connect(context.destination);
 
   const rain = context.createBufferSource();
@@ -36,7 +40,7 @@ export async function startAmbientSound(): Promise<void> {
   rainFilter.type = 'lowpass';
   rainFilter.frequency.value = 1650;
   const rainGain = context.createGain();
-  rainGain.gain.value = 0.27;
+  rainGain.gain.value = 0.3;
   rain.connect(rainFilter).connect(rainGain).connect(master);
 
   const brown = context.createBufferSource();
@@ -44,9 +48,9 @@ export async function startAmbientSound(): Promise<void> {
   brown.loop = true;
   const brownFilter = context.createBiquadFilter();
   brownFilter.type = 'lowpass';
-  brownFilter.frequency.value = 360;
+  brownFilter.frequency.value = 400;
   const brownGain = context.createGain();
-  brownGain.gain.value = 0.34;
+  brownGain.gain.value = 0.4;
   brown.connect(brownFilter).connect(brownGain).connect(master);
 
   rain.start();
