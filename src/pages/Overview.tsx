@@ -67,7 +67,7 @@ function FolderTile({
 function MetricCard({ title, value, unit, foot, points, delta }: { title: string; value: string; unit: string; foot: string; points: number[]; delta?: string }) {
   const navigate = useNavigate();
   return <button className="overview-metric" onClick={() => navigate(title.includes('Deep') ? '/focus' : '/review')}>
-    <div className="metric-label-row"><span>{title}</span><span className="metric-arrow"><ArrowUpRight size={13} /></span></div>
+    <div className="metric-label-row"><span>{title}</span></div>
     <div className="metric-number">{value}<em>{unit}</em></div>
     <MiniBars values={points} />
     <div className="metric-footer"><span>{foot}</span>{delta && <TinyPill tone="amber">{delta}</TinyPill>}</div>
