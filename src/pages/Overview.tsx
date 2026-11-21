@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
-import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
+import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
 import { currentWeekNumber, todayLabel } from '../lib/dates';
@@ -77,7 +77,7 @@ function MetricCard({ title, value, unit, foot, points, delta }: { title: string
 
 export function OverviewPage() {
   const navigate = useNavigate();
-  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, timer, notify } = useDashboard();
+  const { habits, toggleHabit, tasks, toggleTask, projects, timer, notify } = useDashboard();
   const [week, setWeek] = useState(() => currentWeekNumber());
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -603,7 +603,7 @@ export function OverviewPage() {
       <aside className="overview-sidebar">
         <Panel className="library-panel">
           <CardHeading title="Library" />
-          <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes, rituals" value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
+          <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes..." value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
           <div className="subsection-head"><span>Focus folders</span></div>
           {displayedFolders.length > 0 ? (
             <>
@@ -638,10 +638,6 @@ export function OverviewPage() {
               {folderQuery ? 'No folder matches that search.' : 'No folders yet — create a project to see it here.'}
             </div>
           )}
-          <div className="sidebar-section-heading"><span>Rituals</span><span className="section-label">{rituals.length} routines</span></div>
-          {rituals.length > 0
-            ? <div className="ritual-list">{rituals.map((ritual, index) => <div className="ritual-row" key={ritual.id}><span className={`ritual-icon ${index === 0 ? 'ritual-icon--amber' : ''}`}>{index === 0 ? '◷' : index === 1 ? '◌' : '⌁'}</span><div className="ritual-copy"><strong>{ritual.title}</strong><small>{ritual.detail}</small></div><Toggle checked={ritual.on} onChange={() => toggleRitual(ritual.id)} label={`${ritual.title} toggle`} /></div>)}</div>
-            : <div className="library-no-results">No rituals yet.</div>}
           <button className="tasks-expand" onClick={() => setShowTasks((value) => !value)}><span><ListChecks size={14} /> Today’s tasks</span><span>{openTasks.length} open {showTasks ? '−' : '+'}</span></button>
           {showTasks && (tasks.length > 0
             ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>

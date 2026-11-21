@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Check, ChevronDown, Download, FileText, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Target, Timer, X } from 'lucide-react';
+import { Bell, Check, ChevronDown, Download, FileText, Flame, Folder, LayoutDashboard, LogOut, Palette, Search, Sparkles, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
@@ -42,6 +42,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || 'M';
   const active = location.pathname.startsWith('/tasks') ? '/tasks'
     : location.pathname.startsWith('/habits') ? '/habits'
+    : location.pathname.startsWith('/rituals') ? '/rituals'
     : location.pathname.startsWith('/notes') ? '/notes'
     : location.pathname.startsWith('/focus') ? '/focus'
     : location.pathname.startsWith('/projects') ? '/projects'
@@ -52,6 +53,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
     { to: '/projects', label: 'Projects', icon: Folder },
     { to: '/tasks', label: 'Tasks', icon: ListChecks },
     { to: '/habits', label: 'Habits', icon: Target },
+    { to: '/rituals', label: 'Rituals', icon: Flame },
     { to: '/notes', label: 'Notes', icon: FileText },
     { to: '/focus', label: 'Focus', icon: Timer },
     { to: '/review', label: 'Review', icon: Sparkles },

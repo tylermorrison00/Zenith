@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { OverviewPage } from './pages/Overview';
 import { TasksPage } from './pages/Tasks';
 import { HabitsPage } from './pages/Habits';
+import { RitualsPage } from './pages/Rituals';
 import { NotesPage } from './pages/Notes';
 import { FocusPage } from './pages/Focus';
 import { ProjectsPage, BrandRefreshPage } from './pages/Projects';
@@ -26,6 +27,7 @@ function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; 
           <Route path="/" element={<OverviewPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/habits" element={<HabitsPage />} />
+          <Route path="/rituals" element={<RitualsPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/focus" element={<FocusPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

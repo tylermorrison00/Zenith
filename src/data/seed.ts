@@ -174,7 +174,11 @@ export const seedProjects: Project[] = [
 
 export const seedProjectFiles: ProjectFile[] = [];
 
-export const ritualsSeed = [];
+export const ritualsSeed: { id: string; title: string; detail: string; on: boolean }[] = [
+  { id: 'ritual-morning', title: 'Morning Startup', detail: 'Review daily blocks, pour water or coffee, clear desk.', on: true },
+  { id: 'ritual-focus', title: 'Deep Work Warm-up', detail: 'Silence phone, set ambient audio, focus on one task.', on: false },
+  { id: 'ritual-shutdown', title: 'Evening Shutdown', detail: 'Check off done tasks, clear inbox, plan tomorrow.', on: false },
+];
 
 export const weekRulesSeed = [];
 

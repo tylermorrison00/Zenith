@@ -4,7 +4,8 @@ import { getCurrentAccount } from '../lib/auth';
 import { fetchUserDashboard, saveUserDashboard, subscribeUserDashboard } from '../lib/firestore';
 import { HABIT_HISTORY_DAYS, habitHistory, ritualsSeed, seedHabits, seedNotes, seedProjectFiles, seedProjects, seedTaskLists, seedTasks, streakFromHistory, weekRulesSeed, type FocusPlanAddition, type Habit, type Note, type Project, type ProjectFile, type Task, type TaskList } from '../data/seed';
 
-type ToggleItem = { id: string; title: string; detail: string; on: boolean };
+export type ToggleItem = { id: string; title: string; detail: string; on: boolean };
+export type Ritual = ToggleItem;
 type StoredTimer = { seconds: number; running: boolean; changedAt: number; sessions: number; progress: number };
 export type DashboardState = {
   tasks: Task[];
@@ -42,6 +43,9 @@ type DashboardContextValue = DashboardState & {
   updateHabit: (id: string, title: string, detail: string) => void;
   deleteHabit: (id: string) => void;
   toggleHabit: (id: string) => void;
+  addRitual: (title: string, detail: string) => void;
+  updateRitual: (id: string, title: string, detail: string) => void;
+  deleteRitual: (id: string) => void;
   toggleRitual: (id: string) => void;
   toggleWeekRule: (id: string) => void;
   toggleHeldBlock: () => void;
@@ -131,7 +135,7 @@ function loadInitialState(): DashboardState {
     notes: saved.notes ?? seedNotes,
     habits: loadedHabits,
     projects: saved.projects ?? seedProjects,
-    rituals: saved.rituals ?? ritualsSeed,
+    rituals: saved.rituals && saved.rituals.length > 0 ? saved.rituals : ritualsSeed,
     weekRules: saved.weekRules ?? weekRulesSeed,
     appliedWeekRules: saved.appliedWeekRules ?? [],
     focusPlanAdditions: saved.focusPlanAdditions ?? [],
@@ -437,6 +441,33 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     markLocalEdit();
     setState((current) => ({ ...current, rituals: current.rituals.map((item) => item.id === id ? { ...item, on: !item.on } : item) }));
   }, [markLocalEdit]);
+  const addRitual = useCallback((title: string, detail: string) => {
+    markLocalEdit();
+    const item: ToggleItem = {
+      id: `ritual-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      title: title.trim(),
+      detail: detail.trim(),
+      on: false,
+    };
+    setState((current) => ({ ...current, rituals: [item, ...current.rituals] }));
+    setToast('Ritual created');
+  }, [markLocalEdit]);
+  const updateRitual = useCallback((id: string, title: string, detail: string) => {
+    markLocalEdit();
+    setState((current) => ({
+      ...current,
+      rituals: current.rituals.map((item) => item.id === id ? { ...item, title: title.trim(), detail: detail.trim() } : item),
+    }));
+    setToast('Ritual updated');
+  }, [markLocalEdit]);
+  const deleteRitual = useCallback((id: string) => {
+    markLocalEdit();
+    setState((current) => ({
+      ...current,
+      rituals: current.rituals.filter((item) => item.id !== id),
+    }));
+    setToast('Ritual removed');
+  }, [markLocalEdit]);
   const toggleWeekRule = useCallback((id: string) => {
     markLocalEdit();
     setState((current) => ({ ...current, weekRules: current.weekRules.map((item) => item.id === id ? { ...item, on: !item.on } : item), appliedPlan: false }));
@@ -466,9 +497,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<DashboardContextValue>(() => ({
-    ...state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule,
+    ...state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, addRitual, updateRitual, deleteRitual, toggleRitual, toggleWeekRule,
     toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast,
-  }), [state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
+  }), [state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, addRitual, updateRitual, deleteRitual, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
