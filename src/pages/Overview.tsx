@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -127,6 +127,7 @@ export function OverviewPage() {
 
   const [addType, setAddType] = useState<'task' | 'note' | null>(null);
   const [showTasks, setShowTasks] = useState(false);
+  const [showHabits, setShowHabits] = useState(false);
   const [showRituals, setShowRituals] = useState(false);
   const lastCheckClickTimeRef = useRef<number>(0);
 
@@ -185,6 +186,7 @@ export function OverviewPage() {
 
   const openTasks = tasks.filter((task) => !task.done);
   const doneTasks = tasks.filter((task) => task.done);
+  const openHabits = habits.filter((habit) => !habit.done);
   const openRituals = rituals.filter((ritual) => !ritual.on);
   const hasData = tasks.length > 0 || projects.length > 0 || habits.length > 0 || timer.sessions > 0;
 
@@ -625,6 +627,11 @@ export function OverviewPage() {
           {showTasks && (tasks.length > 0
             ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>
             : <div className="library-no-results">No tasks yet — add your first one.</div>)}
+
+          <button className="tasks-expand" onClick={() => setShowHabits((value) => !value)}><span><Target size={14} /> Habits</span><span>{openHabits.length} open {showHabits ? '−' : '+'}</span></button>
+          {showHabits && (habits.length > 0
+            ? <div className="overview-task-list">{habits.map((habit) => <button className="overview-task-row" key={habit.id} onClick={() => toggleHabit(habit.id)}><span className={`task-check ${habit.done ? 'is-done' : ''}`}>{habit.done && <Check size={10} />}</span><span className={habit.done ? 'task-title is-done-text' : 'task-title'}>{habit.title}</span></button>)}</div>
+            : <div className="library-no-results">No habits yet — add one on Habits page.</div>)}
 
           <button className="tasks-expand" onClick={() => setShowRituals((value) => !value)}><span><Flame size={14} /> Rituals</span><span>{openRituals.length} open {showRituals ? '−' : '+'}</span></button>
           {showRituals && (rituals.length > 0
