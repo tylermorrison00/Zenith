@@ -2,10 +2,10 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
-import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill } from '../components/Shared';
+import { CardHeading, FolderGlyph, MiniBars, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
-import { currentWeekNumber, todayLabel } from '../lib/dates';
+import { currentWeekNumber } from '../lib/dates';
 import { useDashboard } from '../state/DashboardContext';
 import { completedTasksBeforeVisibleList } from '../data/seed';
 
@@ -643,15 +643,12 @@ export function OverviewPage() {
           {showRituals && (rituals.length > 0
             ? <div className="overview-task-list">{rituals.map((ritual) => <button className="overview-task-row" key={ritual.id} onClick={() => toggleRitual(ritual.id)}><span className={`task-check ${ritual.on ? 'is-done' : ''}`}>{ritual.on && <Check size={10} />}</span><span className={ritual.on ? 'task-title is-done-text' : 'task-title'}>{ritual.title}</span></button>)}</div>
             : <div className="library-no-results">No rituals yet — add one on Rituals page.</div>)}
-          {showRituals && (rituals.length > 0
-            ? <div className="overview-task-list">{rituals.map((ritual) => <button className="overview-task-row" key={ritual.id} onClick={() => toggleRitual(ritual.id)}><span className={`task-check ${ritual.on ? 'is-done' : ''}`}>{ritual.on && <Check size={10} />}</span><span className={ritual.on ? 'task-title is-done-text' : 'task-title'}>{ritual.title}</span></button>)}</div>
-            : <div className="library-no-results">No rituals yet — add one on Rituals page.</div>)}
         </Panel>
       </aside>
 
       <section className="overview-focus-column">
         <div className="overview-heading-row">
-          <div><PageEyebrow>{todayLabel()}</PageEyebrow><h1 className="display-title display-title--italic">Today's focus</h1></div>
+          <h1 className="display-title display-title--italic">Today's focus</h1>
           <div className="week-pill"><button aria-label="Previous week" onClick={() => setWeek((value) => value - 1)}><ChevronLeft size={13} /></button><span>Week {week}</span><button aria-label="Next week" onClick={() => setWeek((value) => value + 1)}><ChevronRight size={13} /></button></div>
         </div>
         <div className="overview-metrics">
