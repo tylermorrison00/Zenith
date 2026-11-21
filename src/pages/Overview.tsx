@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -132,7 +132,6 @@ export function OverviewPage() {
   useEffect(() => () => stopAmbientSound(), []);
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>('todays-focus');
-  const [isFoldersExpanded, setIsFoldersExpanded] = useState<boolean>(false);
 
   const allFolders = useMemo(() => {
     const list: Array<{
@@ -170,11 +169,8 @@ export function OverviewPage() {
   }, [allFolders, folderQuery]);
 
   const displayedFolders = useMemo(() => {
-    if (isFoldersExpanded || folderQuery.trim()) {
-      return filteredFolders;
-    }
     return filteredFolders.slice(0, 4);
-  }, [filteredFolders, isFoldersExpanded, folderQuery]);
+  }, [filteredFolders]);
 
   const handleFolderClick = (folder: { id: string }) => {
     setSelectedFolderId(folder.id);
@@ -604,35 +600,20 @@ export function OverviewPage() {
         <Panel className="library-panel">
           <CardHeading title="Library" />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes..." value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
-          <div className="subsection-head"><span>Focus folders</span></div>
+          <div className="subsection-head"><span>Focus folders</span><button onClick={() => navigate('/projects')}>See all</button></div>
           {displayedFolders.length > 0 ? (
-            <>
-              <div className="folder-grid">
-                {displayedFolders.map((folder) => (
-                  <FolderTile
-                    key={folder.id}
-                    name={folder.name}
-                    detail={folder.detail}
-                    active={folder.active}
-                    onClick={() => handleFolderClick(folder)}
-                    onDoubleClick={() => handleFolderDoubleClick(folder)}
-                  />
-                ))}
-              </div>
-              {filteredFolders.length > 4 && !folderQuery.trim() && (
-                <div className="folder-expand-row">
-                  <button
-                    type="button"
-                    className="folder-expand-btn"
-                    onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
-                    aria-label={isFoldersExpanded ? 'Show fewer folders' : 'Show all folders'}
-                    title={isFoldersExpanded ? 'Collapse folders' : 'Show all folders'}
-                  >
-                    {isFoldersExpanded ? <ChevronUp size={13} strokeWidth={2.4} /> : <ChevronDown size={13} strokeWidth={2.4} />}
-                  </button>
-                </div>
-              )}
-            </>
+            <div className="folder-grid">
+              {displayedFolders.map((folder) => (
+                <FolderTile
+                  key={folder.id}
+                  name={folder.name}
+                  detail={folder.detail}
+                  active={folder.active}
+                  onClick={() => handleFolderClick(folder)}
+                  onDoubleClick={() => handleFolderDoubleClick(folder)}
+                />
+              ))}
+            </div>
           ) : (
             <div className="library-no-results">
               {folderQuery ? 'No folder matches that search.' : 'No folders yet — create a project to see it here.'}
