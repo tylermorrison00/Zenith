@@ -1893,3 +1893,9 @@
   padding: 30px 20px;
   text-align: center;
 }
+
+.tasks-expand span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
