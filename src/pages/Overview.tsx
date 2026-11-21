@@ -482,7 +482,7 @@ export function OverviewPage() {
       <Panel className="flow-panel">
         <div className="flow-panel-header">
           <CardHeading title="Today's flow" detail={flowDetail} />
-          <div className="projects-filter-tabs" aria-label="Flow filters">
+          <div className="projects-filter-tabs flow-filter-tabs" aria-label="Flow filters">
             {(['All', 'Habits', 'Tasks'] as const).map((tab) => {
               const val = tab.toLowerCase() as 'all' | 'habits' | 'tasks';
               return (
