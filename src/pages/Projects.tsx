@@ -238,7 +238,7 @@ export function ProjectsPage() {
     </div>
 
     <Panel className="all-projects-panel">
-      <div className="all-projects-heading"><div><CardHeading title="All projects" detail="Sorted by next focus block" /></div><div className="projects-filter-tabs" aria-label="Project filters">{(['All', 'Active', 'Done'] as const).map((item) => <button key={item} className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
+      <div className="all-projects-heading"><div><CardHeading title="All projects" /></div><div className="projects-filter-tabs" aria-label="Project filters">{(['All', 'Active', 'Done'] as const).map((item) => <button key={item} className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
       {visibleProjects.length > 0 ? (
         <div className="table-wrap">
           <table className="projects-overview-table">
