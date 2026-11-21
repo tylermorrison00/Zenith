@@ -106,6 +106,7 @@ function ProjectRow({
 }) {
   const pTasks = (tasks || []).filter((t) => t.project && (t.project.toLowerCase() === (project.name || '').toLowerCase() || t.project.toLowerCase() === (project.id || '').toLowerCase()));
   const pNotes = (notes || []).filter((n) => n.project && (n.project.toLowerCase() === (project.name || '').toLowerCase() || n.project.toLowerCase() === (project.id || '').toLowerCase()));
+  const pTotalFiles = pTasks.length + pNotes.length;
   const pDone = pTasks.filter((t) => t.done).length;
   const pPct = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : (project.progress || 0);
 
@@ -116,7 +117,7 @@ function ProjectRow({
           <FolderGlyph active={project.id === 'zenith'} />
           <span>
             <strong>{project.name}</strong>
-            <small>{project.sublabel || `${pTasks.length} tasks`}</small>
+            <small>{`${pTotalFiles} ${pTotalFiles === 1 ? 'file' : 'files'}`}</small>
           </span>
         </button>
       </td>
@@ -170,9 +171,11 @@ export function ProjectsPage() {
 
   const pKey = featured ? featured.name.toLowerCase() : 'home';
   const pTasks = featured ? tasks.filter((task) => task.project && (task.project.toLowerCase() === featured.name.toLowerCase() || task.project.toLowerCase() === featured.id.toLowerCase())) : [];
+  const pNotes = featured ? notes.filter((n) => n.project && (n.project.toLowerCase() === featured.name.toLowerCase() || n.project.toLowerCase() === featured.id.toLowerCase())) : [];
   const pPending = pTasks.filter((task) => !task.done);
   const pDone = pTasks.filter((task) => task.done).length;
   const pTotal = pTasks.length;
+  const pTotalFiles = pTasks.length + pNotes.length;
   const pPct = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : (featured?.progress || 0);
   const featuredTasks = pPending.slice(0, 3);
 
@@ -212,7 +215,7 @@ export function ProjectsPage() {
       {featured ? <button className="featured-project-card" onClick={() => navigate('/focus')}>
         <div className="featured-project-meta"><span className="start-focus featured-focus-btn"><span className="plus-small">+</span> In focus</span></div>
         <div className="featured-project-title">{featured.name}</div>
-        <div className="featured-project-subline">{featured.sublabel || (pTotal > 0 ? `${pTotal} ${pTotal === 1 ? 'task' : 'tasks'}` : '0 files')}</div>
+        <div className="featured-project-subline">{`${pTotalFiles} ${pTotalFiles === 1 ? 'file' : 'files'}`}</div>
         <div className="featured-project-bottom"><div className="featured-progress"><strong>{pPct}<small>%</small></strong><span>{pTotal > 0 ? `${pDone} of ${pTotal} tasks done` : `${featured.files} done`}</span></div><div className="featured-next"><small>NEXT UP</small>{featuredTasks.length > 0 ? featuredTasks.map((task) => <div key={task.id}><Target size={12} /> {task.title}</div>) : <div><span className="empty-circle" /> No tasks yet</div>}</div><div className="folder-art-large"><span className="folder-paper folder-paper--one" /><span className="folder-paper folder-paper--two" /><span className="folder-paper folder-paper--amber" /><div className="folder-pocket"><FolderOpen size={50} strokeWidth={1.05} /></div></div></div>
       </button> : <Panel className="featured-project-card"><div className="library-no-results">No project in focus yet — create your first project.</div></Panel>}
       <Panel className="project-milestone-panel">

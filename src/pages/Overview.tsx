@@ -76,7 +76,7 @@ function MetricCard({ title, value, unit, foot, points, delta }: { title: string
 
 export function OverviewPage() {
   const navigate = useNavigate();
-  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, timer, notify } = useDashboard();
+  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, notes, projectFiles, timer, notify } = useDashboard();
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [trackIndex, setTrackIndex] = useState(0);
@@ -134,6 +134,29 @@ export function OverviewPage() {
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>('todays-focus');
 
+  const [projectStore, setProjectStore] = useState<{
+    tasks?: Record<string, any[]>;
+    notes?: Record<string, any[]>;
+  }>(() => {
+    try {
+      const raw = localStorage.getItem('zenith-project-store-v2');
+      return raw ? JSON.parse(raw) : { tasks: {}, notes: {} };
+    } catch {
+      return { tasks: {}, notes: {} };
+    }
+  });
+
+  useEffect(() => {
+    const handleStoreChange = () => {
+      try {
+        const raw = localStorage.getItem('zenith-project-store-v2');
+        setProjectStore(raw ? JSON.parse(raw) : { tasks: {}, notes: {} });
+      } catch {}
+    };
+    window.addEventListener('zenith-project-store-changed', handleStoreChange);
+    return () => window.removeEventListener('zenith-project-store-changed', handleStoreChange);
+  }, []);
+
   const allFolders = useMemo(() => {
     const list: Array<{
       id: string;
@@ -143,25 +166,74 @@ export function OverviewPage() {
       target?: string;
     }> = [];
 
+    // Total for Today's Focus: tasks + habits + rituals + notes + projectFiles
+    const todaysTotal = (tasks?.length || 0) + (habits?.length || 0) + (rituals?.length || 0) + (notes?.length || 0) + (projectFiles?.length || 0);
+
     list.push({
       id: 'todays-focus',
       name: "Today's Focus",
-      detail: '0 files',
+      detail: `${todaysTotal} ${todaysTotal === 1 ? 'file' : 'files'}`,
       active: selectedFolderId === 'todays-focus',
     });
 
     projects.forEach((project) => {
+      const pName = (project.name || '').toLowerCase();
+      const pId = (project.id || '').toLowerCase();
+
+      // Tasks
+      const ctxTasks = (tasks || []).filter(
+        (t) => t.project && (t.project.toLowerCase() === pName || t.project.toLowerCase() === pId)
+      );
+      const storeTasks: any[] = (projectStore.tasks && (projectStore.tasks[pName] || projectStore.tasks[pId])) || [];
+      const taskIds = new Set(ctxTasks.map((t) => t.id));
+      let pTaskCount = ctxTasks.length;
+      storeTasks.forEach((st) => {
+        if (st.id && !taskIds.has(st.id)) {
+          taskIds.add(st.id);
+          pTaskCount += 1;
+        }
+      });
+
+      // Notes
+      const ctxNotes = (notes || []).filter(
+        (n) => n.project && (n.project.toLowerCase() === pName || n.project.toLowerCase() === pId)
+      );
+      const storeNotes: any[] = (projectStore.notes && (projectStore.notes[pName] || projectStore.notes[pId])) || [];
+      const noteIds = new Set(ctxNotes.map((n) => n.id));
+      let pNoteCount = ctxNotes.length;
+      storeNotes.forEach((sn) => {
+        if (sn.id && !noteIds.has(sn.id)) {
+          noteIds.add(sn.id);
+          pNoteCount += 1;
+        }
+      });
+
+      // Files / Attachments
+      const pFiles = (projectFiles || []).filter(
+        (f: any) => f.project && (f.project.toLowerCase() === pName || f.project.toLowerCase() === pId)
+      );
+
+      // Habits / Rituals tied to project (if any)
+      const pHabits = (habits || []).filter(
+        (h: any) => (h as any).project && ((h as any).project.toLowerCase() === pName || (h as any).project.toLowerCase() === pId)
+      );
+      const pRituals = (rituals || []).filter(
+        (r: any) => (r as any).project && ((r as any).project.toLowerCase() === pName || (r as any).project.toLowerCase() === pId)
+      );
+
+      const pTotal = pTaskCount + pNoteCount + pFiles.length + pHabits.length + pRituals.length;
+
       list.push({
         id: project.id,
         name: project.name,
-        detail: project.sublabel || '0 files',
+        detail: `${pTotal} ${pTotal === 1 ? 'file' : 'files'}`,
         active: selectedFolderId === project.id,
         target: `/projects/${project.id}`,
       });
     });
 
     return list;
-  }, [projects, selectedFolderId]);
+  }, [projects, selectedFolderId, tasks, habits, rituals, notes, projectFiles, projectStore]);
 
   const filteredFolders = useMemo(() => {
     if (!folderQuery.trim()) return allFolders;
@@ -256,12 +328,16 @@ export function OverviewPage() {
       // Specific project selected!
       const activeProject = projects.find((p) => p.id === selectedFolderId);
       const projName = activeProject ? activeProject.name.toLowerCase() : '';
+      const projId = activeProject ? activeProject.id.toLowerCase() : '';
 
       const projectTasks = (tasks || []).filter(
         (t) =>
-          (t.project && t.project.toLowerCase() === projName) ||
+          (t.project && (t.project.toLowerCase() === projName || t.project.toLowerCase() === projId)) ||
           t.project === selectedFolderId
       );
+
+      const storeTasks: any[] = (projectStore.tasks && (projectStore.tasks[projName] || projectStore.tasks[projId])) || [];
+      const existingIds = new Set(projectTasks.map((t) => t.id));
 
       projectTasks.forEach((t, i) => {
         const types = ['focus', 'meeting', 'break'];
@@ -275,10 +351,25 @@ export function OverviewPage() {
           key: `task:${t.id}`,
         });
       });
+
+      storeTasks.forEach((st, i) => {
+        if (!existingIds.has(st.id)) {
+          const types = ['focus', 'meeting', 'break'];
+          list.push({
+            id: st.id,
+            kind: 'task',
+            title: st.title,
+            subtitle: activeProject?.name || 'Task',
+            done: !!st.done,
+            category: types[(projectTasks.length + i) % types.length],
+            key: `task:${st.id}`,
+          });
+        }
+      });
     }
 
     return list;
-  }, [habits, tasks, selectedFolderId, projects]);
+  }, [habits, tasks, selectedFolderId, projects, projectStore]);
 
   const flowItems = useMemo(() => {
     const itemMap = new Map<string, typeof rawItems[0]>();
