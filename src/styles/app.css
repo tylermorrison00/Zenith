@@ -1894,10 +1894,38 @@
   text-align: center;
 }
 
-.tasks-expand span:last-child {
+.subsection-head button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  padding: 2px 0;
+  color: #e2d9d0;
+  font-size: 9px;
+  font-weight: 500;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.subsection-head button:hover {
+  color: var(--amber);
+}
+
+.tasks-expand span:last-child,
+.tasks-expand > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #e2d9d0;
+  font-size: 9px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.tasks-expand:hover span:last-child,
+.tasks-expand:hover > span:last-child {
+  color: var(--amber);
 }
 
 .overview-focus-column .overview-heading-row {

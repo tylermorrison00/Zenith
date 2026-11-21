@@ -604,7 +604,7 @@ export function OverviewPage() {
           <div className="subsection-head">
             <span>Focus folders</span>
             <button onClick={() => setFoldersExpanded((value) => !value)}>
-              See all {foldersExpanded ? <ChevronUp size={11} strokeWidth={2} /> : <ChevronDown size={11} strokeWidth={2} />}
+              {projects.length} projects {foldersExpanded ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}
             </button>
           </div>
           {displayedFolders.length > 0 ? (
