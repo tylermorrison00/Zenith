@@ -258,62 +258,69 @@ function RitualDialog({
   const [title, setTitle] = useState(ritual?.title ?? '');
   const [detail, setDetail] = useState(ritual?.detail ?? '');
 
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!title.trim()) return;
+    onSubmit(title.trim(), detail.trim());
+  }
+
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
+    <div
+      className="modal-scrim"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="ritual-dialog-title" onSubmit={submit}>
+        <div className="modal-head">
           <div>
-            <h3>{ritual ? 'Edit ritual' : 'New ritual'}</h3>
-            <p className="dialog-subtitle">
-              Rituals help prepare your environment and mind before or after deep focus.
-            </p>
+            <div className="eyebrow">Focus routines & anchors</div>
+            <h2 id="ritual-dialog-title">{ritual ? 'Edit ritual' : 'Add ritual'}</h2>
           </div>
-          <button type="button" className="dialog-close" onClick={onClose} aria-label="Close dialog">
+          <button type="button" className="icon-circle" aria-label="Close" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!title.trim()) return;
-            onSubmit(title, detail);
-          }}
-          className="dialog-form"
-        >
-          <label className="dialog-field">
-            <span>Ritual Title</span>
-            <input
-              type="text"
-              autoFocus
-              placeholder="e.g. Morning Startup, Deep Work Prep, Evening Reset"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="dialog-input"
-            />
-          </label>
+        <label className="form-label">
+          Ritual name
+          <input
+            className="form-control"
+            autoFocus
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="e.g. Morning Startup"
+          />
+        </label>
 
-          <label className="dialog-field">
-            <span>Description / Routine Steps</span>
-            <textarea
-              placeholder="e.g. Clear physical desk, put phone on Do Not Disturb, review today's blocks..."
-              value={detail}
-              onChange={(e) => setDetail(e.target.value)}
-              rows={3}
-              className="dialog-textarea"
-            />
-          </label>
+        <label className="form-label">
+          Detail / Routine steps
+          <input
+            className="form-control"
+            value={detail}
+            onChange={(event) => setDetail(event.target.value)}
+            placeholder="e.g. Clear desk, review top 3 blocks, brew coffee"
+          />
+        </label>
 
-          <div className="dialog-actions">
-            <button type="button" className="button-ghost" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="button-primary" disabled={!title.trim()}>
-              {ritual ? 'Save changes' : 'Create ritual'}
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className="modal-actions">
+          <button type="button" className="button-quiet" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="button-light" disabled={!title.trim()}>
+            {ritual ? 'Save ritual' : 'Add ritual'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
