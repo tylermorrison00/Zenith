@@ -30,6 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Extract App Version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          VERSION_CODE=$(( major * 10000 + minor * 100 + patch ))
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+
       - name: Build Web Application
         run: npx vite build
 
@@ -51,7 +59,7 @@ jobs:
 
       - name: Setup Persistent Signing Keystore & Gradle Config
         run: |
-          python3 scripts/setup-signing.py "1.0.8" 10008
+          python3 scripts/setup-signing.py "$APP_VERSION" "$APP_VERSION_CODE"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add keystore/zenith.keystore || true
@@ -91,11 +99,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip \
-            --title "Zenith v1.0.8" \
-            --notes "Zenith Update: Habits placed first in Today's flow before tasks. Available for mobile (APK) and laptop." || \
-          gh release upload v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber
-          gh release upload android-v1.0.8 release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber || true
+          gh release create "v$APP_VERSION" release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip \
+            --title "Zenith v$APP_VERSION" \
+            --notes "Zenith v$APP_VERSION update with latest flow cards, project cards, and design refinements. Available for mobile (APK) and laptop." || \
+          gh release upload "v$APP_VERSION" release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber
+          gh release upload "android-v$APP_VERSION" release-apk/Zenith.apk release-apk/Zenith-Web-Dist.zip --clobber || true
 
   build-windows:
     name: Build Windows Setup
@@ -123,10 +131,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          $ver = (Get-Content package.json | ConvertFrom-Json).version
           $installer = Get-ChildItem -Path release -Filter "Zenith*Setup*.exe" | Select-Object -First 1
           if ($installer) {
-            $destName = "Zenith.Setup.1.0.8.exe"
+            $destName = "Zenith.Setup.$ver.exe"
             Copy-Item $installer.FullName -Destination "release/$destName"
-            gh release upload v1.0.8 "release/$destName" --repo tylermorrison00/Zenith --clobber
-            gh release upload android-v1.0.8 "release/$destName" --repo tylermorrison00/Zenith --clobber
+            gh release upload "v$ver" "release/$destName" --repo tylermorrison00/Zenith --clobber
+            gh release upload "android-v$ver" "release/$destName" --repo tylermorrison00/Zenith --clobber
           }
