@@ -652,7 +652,7 @@ export function OverviewPage() {
 
   const flowDetail = useMemo(() => {
     if (!visibleFlowItems.length) {
-      return selectedFolderId !== 'todays-focus' ? 'No tasks in this project' : 'No blocks planned';
+      return '';
     }
     const doneCount = visibleFlowItems.filter((i) => i.done).length;
     if (selectedFolderId !== 'todays-focus') {
@@ -672,6 +672,17 @@ export function OverviewPage() {
     }
     return `${tasks.length} tasks (${doneCount} done)`;
   }, [visibleFlowItems, flowFilter, habits.length, tasks.length, selectedFolderId]);
+
+  const emptyFlowMessage = useMemo(() => {
+    if (selectedFolderId !== 'todays-focus') {
+      if (flowFilter === 'habits') return 'No habits in this project';
+      if (flowFilter === 'tasks') return 'No tasks in this project';
+      return 'No tasks and habits in this project';
+    }
+    if (flowFilter === 'habits') return 'No habits on the flow yet.';
+    if (flowFilter === 'tasks') return 'No tasks on the flow yet.';
+    return 'No tasks and habits in this project';
+  }, [selectedFolderId, flowFilter]);
   async function toggleAudio() {
     if (audioPlaying) {
       stopAmbientSound();
@@ -1004,14 +1015,8 @@ export function OverviewPage() {
                 );
               })}
             </div>
-          : <div className="library-no-results">
-              {selectedFolderId !== 'todays-focus'
-                ? 'No tasks on the flow for this project yet.'
-                : flowFilter === 'habits'
-                ? 'No habits on the flow yet.'
-                : flowFilter === 'tasks'
-                ? 'No tasks on the flow yet.'
-                : 'Nothing on the flow yet — add a habit or task to plan your day.'}
+          : <div className="flow-empty-wrap">
+              <span className="flow-empty-msg">{emptyFlowMessage}</span>
             </div>}
       </Panel>
 
