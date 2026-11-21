@@ -64,13 +64,13 @@ function FolderTile({
   );
 }
 
-function MetricCard({ title, value, unit, foot, points, delta }: { title: string; value: string; unit: string; foot: string; points: number[]; delta?: string }) {
+function MetricCard({ title, value, unit, foot, points, delta }: { title: string; value: string; unit: string; foot?: string; points: number[]; delta?: string }) {
   const navigate = useNavigate();
   return <button className="overview-metric" onClick={() => navigate(title.includes('Deep') ? '/focus' : '/review')}>
     <div className="metric-label-row"><span>{title}</span></div>
     <div className="metric-number">{value}<em>{unit}</em></div>
     <MiniBars values={points} />
-    <div className="metric-footer"><span>{foot}</span>{delta && <TinyPill tone="amber">{delta}</TinyPill>}</div>
+    {(foot || delta) && <div className="metric-footer">{foot && <span>{foot}</span>}{delta && <TinyPill tone="amber">{delta}</TinyPill>}</div>}
   </button>;
 }
 
@@ -649,8 +649,8 @@ export function OverviewPage() {
           <h1 className="display-title display-title--italic">Today's focus</h1>
         </div>
         <div className="overview-metrics">
-          <MetricCard title="Deep work today" value="0.0" unit="h" foot="No sessions yet" points={[]} />
-          <MetricCard title="Focus score" value="0" unit="/100" foot="No sessions yet" points={[]} />
+          <MetricCard title="Deep work today" value="0.0" unit="h" points={[]} />
+          <MetricCard title="Focus score" value="0" unit="/100" points={[]} />
         </div>
       </section>
 
