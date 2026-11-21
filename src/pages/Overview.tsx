@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, Plus, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -602,7 +602,7 @@ export function OverviewPage() {
     <div className="overview-top-grid">
       <aside className="overview-sidebar">
         <Panel className="library-panel">
-          <CardHeading title="Library" detail="Everything you need for today’s blocks" action={<button className="icon-circle" aria-label="Add a task" onClick={() => setAddType('task')}><Plus size={15} /></button>} />
+          <CardHeading title="Library" />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes, rituals" value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
           <div className="subsection-head"><span>Focus folders</span><button onClick={() => navigate('/projects')}>See all</button></div>
           {displayedFolders.length > 0 ? (
