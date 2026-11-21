@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -9,12 +9,37 @@ import { currentWeekNumber, todayLabel } from '../lib/dates';
 import { useDashboard } from '../state/DashboardContext';
 import { completedTasksBeforeVisibleList } from '../data/seed';
 
-function FolderTile({ name, detail, active, target }: { name: string; detail: string; active: boolean; target: string }) {
-  const navigate = useNavigate();
-  return <button className={`folder-tile ${active ? 'folder-tile--active' : ''}`} onClick={() => navigate(target)}>
-    <div className={`folder-art ${active ? 'folder-art--amber' : ''}`}><span /><span /><b><FolderGlyph active={active} /></b></div>
-    <strong>{name}</strong><small>{detail}</small>
-  </button>;
+function FolderTile({
+  name,
+  detail,
+  active,
+  onClick,
+  onDoubleClick,
+}: {
+  name: string;
+  detail: string;
+  active: boolean;
+  onClick: () => void;
+  onDoubleClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`folder-tile ${active ? 'folder-tile--active' : ''}`}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+    >
+      <div className={`folder-art ${active ? 'folder-art--amber' : ''}`}>
+        <span />
+        <span />
+        <b>
+          <FolderGlyph active={active} />
+        </b>
+      </div>
+      <strong>{name}</strong>
+      <small>{detail}</small>
+    </button>
+  );
 }
 
 function MetricCard({ title, value, unit, foot, points, delta }: { title: string; value: string; unit: string; foot: string; points: number[]; delta?: string }) {
@@ -39,14 +64,61 @@ export function OverviewPage() {
 
   useEffect(() => () => stopAmbientSound(), []);
 
-  const folders = useMemo(() => projects
-    .map((project, index) => ({
-      name: project.name,
-      detail: project.sublabel,
-      active: index === 0,
-      target: project.id === 'brand-refresh' ? '/projects/brand-refresh' : project.id === 'zenith' ? '/focus' : '/projects',
-    }))
-    .filter((folder) => `${folder.name} ${folder.detail}`.toLowerCase().includes(folderQuery.toLowerCase())), [folderQuery, projects]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('todays-focus');
+  const [isFoldersExpanded, setIsFoldersExpanded] = useState<boolean>(false);
+
+  const allFolders = useMemo(() => {
+    const list: Array<{
+      id: string;
+      name: string;
+      detail: string;
+      active: boolean;
+      target?: string;
+    }> = [];
+
+    list.push({
+      id: 'todays-focus',
+      name: "Today's Focus",
+      detail: '0 files',
+      active: selectedFolderId === 'todays-focus',
+    });
+
+    projects.forEach((project) => {
+      list.push({
+        id: project.id,
+        name: project.name,
+        detail: project.sublabel || '0 files',
+        active: selectedFolderId === project.id,
+        target: `/projects/${project.id}`,
+      });
+    });
+
+    return list;
+  }, [projects, selectedFolderId]);
+
+  const filteredFolders = useMemo(() => {
+    if (!folderQuery.trim()) return allFolders;
+    const q = folderQuery.toLowerCase();
+    return allFolders.filter((f) => f.name.toLowerCase().includes(q) || f.detail.toLowerCase().includes(q));
+  }, [allFolders, folderQuery]);
+
+  const displayedFolders = useMemo(() => {
+    if (isFoldersExpanded || folderQuery.trim()) {
+      return filteredFolders;
+    }
+    return filteredFolders.slice(0, 4);
+  }, [filteredFolders, isFoldersExpanded, folderQuery]);
+
+  const handleFolderClick = (folder: { id: string }) => {
+    setSelectedFolderId(folder.id);
+  };
+
+  const handleFolderDoubleClick = (folder: { id: string; target?: string }) => {
+    if (folder.target) {
+      navigate(folder.target);
+    }
+  };
+
   const openTasks = tasks.filter((task) => !task.done);
   const doneTasks = tasks.filter((task) => task.done);
   const hasData = tasks.length > 0 || projects.length > 0 || habits.length > 0 || timer.sessions > 0;
@@ -88,36 +160,61 @@ export function OverviewPage() {
       key: string;
     }> = [];
 
-    // 1. Sab se pehle habits
-    (habits || []).forEach((h) => {
-      list.push({
-        id: h.id,
-        kind: 'habit',
-        title: h.title,
-        subtitle: h.streak > 0 ? `${h.streak} day streak` : 'Daily habit',
-        done: h.done,
-        streak: h.streak,
-        category: 'focus',
-        key: `habit:${h.id}`,
+    if (selectedFolderId === 'todays-focus') {
+      // 1. Sab se pehle habits
+      (habits || []).forEach((h) => {
+        list.push({
+          id: h.id,
+          kind: 'habit',
+          title: h.title,
+          subtitle: h.streak > 0 ? `${h.streak} day streak` : 'Daily habit',
+          done: h.done,
+          streak: h.streak,
+          category: 'focus',
+          key: `habit:${h.id}`,
+        });
       });
-    });
 
-    // 2. Uske baad tasks
-    (tasks || []).forEach((t, i) => {
-      const types = ['focus', 'meeting', 'break'];
-      list.push({
-        id: t.id,
-        kind: 'task',
-        title: t.title,
-        subtitle: t.project || 'Task',
-        done: t.done,
-        category: types[i % types.length],
-        key: `task:${t.id}`,
+      // 2. Uske baad tasks
+      (tasks || []).forEach((t, i) => {
+        const types = ['focus', 'meeting', 'break'];
+        list.push({
+          id: t.id,
+          kind: 'task',
+          title: t.title,
+          subtitle: t.project || 'Task',
+          done: t.done,
+          category: types[i % types.length],
+          key: `task:${t.id}`,
+        });
       });
-    });
+    } else {
+      // Specific project selected!
+      const activeProject = projects.find((p) => p.id === selectedFolderId);
+      const projName = activeProject ? activeProject.name.toLowerCase() : '';
+
+      const projectTasks = (tasks || []).filter(
+        (t) =>
+          (t.project && t.project.toLowerCase() === projName) ||
+          t.project === selectedFolderId
+      );
+
+      projectTasks.forEach((t, i) => {
+        const types = ['focus', 'meeting', 'break'];
+        list.push({
+          id: t.id,
+          kind: 'task',
+          title: t.title,
+          subtitle: t.project || activeProject?.name || 'Task',
+          done: t.done,
+          category: types[i % types.length],
+          key: `task:${t.id}`,
+        });
+      });
+    }
 
     return list;
-  }, [habits, tasks]);
+  }, [habits, tasks, selectedFolderId, projects]);
 
   const flowItems = useMemo(() => {
     const itemMap = new Map<string, typeof rawItems[0]>();
@@ -399,8 +496,13 @@ export function OverviewPage() {
 
 
   const flowDetail = useMemo(() => {
-    if (!visibleFlowItems.length) return 'No blocks planned';
+    if (!visibleFlowItems.length) {
+      return selectedFolderId !== 'todays-focus' ? 'No tasks in this project' : 'No blocks planned';
+    }
     const doneCount = visibleFlowItems.filter((i) => i.done).length;
+    if (selectedFolderId !== 'todays-focus') {
+      return `${visibleFlowItems.length} tasks (${doneCount} done)`;
+    }
     if (flowFilter === 'habits') {
       return `${visibleFlowItems.length} habits (${doneCount} done)`;
     }
@@ -414,7 +516,7 @@ export function OverviewPage() {
       return `${habits.length} habits (${doneCount} done)`;
     }
     return `${tasks.length} tasks (${doneCount} done)`;
-  }, [visibleFlowItems, flowFilter, habits.length, tasks.length]);
+  }, [visibleFlowItems, flowFilter, habits.length, tasks.length, selectedFolderId]);
   async function toggleAudio() {
     if (audioPlaying) {
       stopAmbientSound();
@@ -436,9 +538,39 @@ export function OverviewPage() {
           <CardHeading title="Library" detail="Everything you need for today’s blocks" action={<button className="icon-circle" aria-label="Add a task" onClick={() => setAddType('task')}><Plus size={15} /></button>} />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes, rituals" value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
           <div className="subsection-head"><span>Focus folders</span><button onClick={() => navigate('/projects')}>See all</button></div>
-          {folders.length > 0
-            ? <div className="folder-grid">{folders.map((folder) => <FolderTile key={folder.name} {...folder} />)}</div>
-            : <div className="library-no-results">{folderQuery ? 'No folder matches that search.' : 'No folders yet — create a project to see it here.'}</div>}
+          {displayedFolders.length > 0 ? (
+            <>
+              <div className="folder-grid">
+                {displayedFolders.map((folder) => (
+                  <FolderTile
+                    key={folder.id}
+                    name={folder.name}
+                    detail={folder.detail}
+                    active={folder.active}
+                    onClick={() => handleFolderClick(folder)}
+                    onDoubleClick={() => handleFolderDoubleClick(folder)}
+                  />
+                ))}
+              </div>
+              {filteredFolders.length > 4 && !folderQuery.trim() && (
+                <div className="folder-expand-row">
+                  <button
+                    type="button"
+                    className="folder-expand-btn"
+                    onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
+                    aria-label={isFoldersExpanded ? 'Show fewer folders' : 'Show all folders'}
+                    title={isFoldersExpanded ? 'Collapse folders' : 'Show all folders'}
+                  >
+                    {isFoldersExpanded ? <ChevronUp size={13} strokeWidth={2.4} /> : <ChevronDown size={13} strokeWidth={2.4} />}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="library-no-results">
+              {folderQuery ? 'No folder matches that search.' : 'No folders yet — create a project to see it here.'}
+            </div>
+          )}
           <div className="sidebar-section-heading"><span>Rituals</span><span className="section-label">{rituals.length} routines</span></div>
           {rituals.length > 0
             ? <div className="ritual-list">{rituals.map((ritual, index) => <div className="ritual-row" key={ritual.id}><span className={`ritual-icon ${index === 0 ? 'ritual-icon--amber' : ''}`}>{index === 0 ? '◷' : index === 1 ? '◌' : '⌁'}</span><div className="ritual-copy"><strong>{ritual.title}</strong><small>{ritual.detail}</small></div><Toggle checked={ritual.on} onChange={() => toggleRitual(ritual.id)} label={`${ritual.title} toggle`} /></div>)}</div>
@@ -636,7 +768,13 @@ export function OverviewPage() {
               })}
             </div>
           : <div className="library-no-results">
-              {flowFilter === 'habits' ? 'No habits on the flow yet.' : flowFilter === 'tasks' ? 'No tasks on the flow yet.' : 'Nothing on the flow yet — add a habit or task to plan your day.'}
+              {selectedFolderId !== 'todays-focus'
+                ? 'No tasks on the flow for this project yet.'
+                : flowFilter === 'habits'
+                ? 'No habits on the flow yet.'
+                : flowFilter === 'tasks'
+                ? 'No tasks on the flow yet.'
+                : 'Nothing on the flow yet — add a habit or task to plan your day.'}
             </div>}
       </Panel>
 
