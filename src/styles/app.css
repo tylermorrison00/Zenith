@@ -79,7 +79,6 @@
 .folder-art-large:hover,
 .featured-project-card:hover .folder-art-large {
   transform: translateY(-5px) !important;
-  filter: drop-shadow(0 0 24px rgba(var(--amber-rgb), 0.4)) !important;
 }
 
 /* Back Layer: Full 260px dark charcoal rounded back */
@@ -107,8 +106,8 @@
 
 .folder-art-large:hover::before,
 .featured-project-card:hover .folder-art-large::before {
-  border-color: rgba(var(--amber-rgb), 0.45) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 32px rgba(var(--amber-rgb), 0.5), 0 0 65px rgba(var(--amber-rgb), 0.25), 0 16px 42px rgba(0, 0, 0, 0.75) !important;
+  border-color: rgba(var(--amber-rgb), 0.25) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 16px rgba(var(--amber-rgb), 0.25), 0 0 32px rgba(var(--amber-rgb), 0.12), 0 12px 28px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Paper 1: White Document inside */
@@ -179,7 +178,7 @@
 .folder-art-large:hover .folder-paper--amber,
 .featured-project-card:hover .folder-art-large .folder-paper--amber {
   transform: translateY(-4px) !important;
-  box-shadow: 0 6px 20px rgba(var(--amber-rgb), 0.6) !important;
+  box-shadow: 0 4px 12px rgba(var(--amber-rgb), 0.25) !important;
 }
 
 .folder-art-large .folder-paper--amber::after {
