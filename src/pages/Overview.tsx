@@ -604,7 +604,7 @@ export function OverviewPage() {
         <Panel className="library-panel">
           <CardHeading title="Library" />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes, rituals" value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
-          <div className="subsection-head"><span>Focus folders</span><button onClick={() => navigate('/projects')}>See all</button></div>
+          <div className="subsection-head"><span>Focus folders</span></div>
           {displayedFolders.length > 0 ? (
             <>
               <div className="folder-grid">
