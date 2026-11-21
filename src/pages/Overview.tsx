@@ -127,6 +127,7 @@ export function OverviewPage() {
   const [showTasks, setShowTasks] = useState(true);
   const [showHabits, setShowHabits] = useState(true);
   const [showRituals, setShowRituals] = useState(true);
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
   const lastCheckClickTimeRef = useRef<number>(0);
 
   useEffect(() => () => stopAmbientSound(), []);
@@ -169,8 +170,9 @@ export function OverviewPage() {
   }, [allFolders, folderQuery]);
 
   const displayedFolders = useMemo(() => {
+    if (foldersExpanded) return filteredFolders;
     return filteredFolders.slice(0, 4);
-  }, [filteredFolders]);
+  }, [filteredFolders, foldersExpanded]);
 
   const handleFolderClick = (folder: { id: string }) => {
     setSelectedFolderId(folder.id);
@@ -599,7 +601,12 @@ export function OverviewPage() {
         <Panel className="library-panel">
           <CardHeading title="Library" />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes..." value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
-          <div className="subsection-head"><span>Focus folders</span><button onClick={() => navigate('/projects')}>See all</button></div>
+          <div className="subsection-head">
+            <span>Focus folders</span>
+            <button onClick={() => setFoldersExpanded((value) => !value)}>
+              See all {foldersExpanded ? <ChevronUp size={11} strokeWidth={2} /> : <ChevronDown size={11} strokeWidth={2} />}
+            </button>
+          </div>
           {displayedFolders.length > 0 ? (
             <div className="folder-grid">
               {displayedFolders.map((folder) => (
