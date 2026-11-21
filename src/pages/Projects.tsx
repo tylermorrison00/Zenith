@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Archive, Check, ChevronLeft, ChevronRight, FileText, FolderOpen, Pencil, Plus, Search, Target, Trash2, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Archive, Check, ChevronLeft, ChevronRight, FileText, FolderOpen, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { GripDiagonal } from '../lib/icons';
 import { CardHeading, FolderGlyph, PageEyebrow, Panel, ProgressBar, StatusChip, TinyPill } from '../components/Shared';
 import { useDashboard } from '../state/DashboardContext';
@@ -177,7 +177,6 @@ export function ProjectsPage() {
   const pTotal = pTasks.length;
   const pTotalFiles = pTasks.length + pNotes.length;
   const pPct = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : (featured?.progress || 0);
-  const featuredTasks = pPending.slice(0, 3);
 
   const hoursMap: Record<string, number> = { home: 4.0, personal: 3.5, work: 12.5 };
   const currentHours = (featured && featured.hours > 0) ? featured.hours : (hoursMap[pKey] || 0);
@@ -216,7 +215,7 @@ export function ProjectsPage() {
         <div className="featured-project-meta"><span className="start-focus featured-focus-btn"><span className="plus-small">+</span> In focus</span></div>
         <div className="featured-project-title">{featured.name}</div>
         <div className="featured-project-subline">{`${pTotalFiles} ${pTotalFiles === 1 ? 'file' : 'files'}`}</div>
-        <div className="featured-project-bottom"><div className="featured-progress"><strong>{pPct}<small>%</small></strong><span>{pTotal > 0 ? `${pDone} of ${pTotal} tasks done` : `${featured.files} done`}</span></div><div className="featured-next"><small>NEXT UP</small>{featuredTasks.length > 0 ? featuredTasks.map((task) => <div key={task.id}><Target size={12} /> {task.title}</div>) : <div><span className="empty-circle" /> No tasks yet</div>}</div><div className="folder-art-large"><span className="folder-paper folder-paper--one" /><span className="folder-paper folder-paper--two" /><span className="folder-paper folder-paper--amber" /><div className="folder-pocket"><FolderOpen size={50} strokeWidth={1.05} /></div></div></div>
+        <div className="featured-project-bottom"><div className="featured-progress"><strong>{pPct}<small>%</small></strong><span>{pTotal > 0 ? `${pDone} of ${pTotal} tasks done` : `${featured.files} done`}</span></div><div className="folder-art-large"><span className="folder-paper folder-paper--one" /><span className="folder-paper folder-paper--two" /><span className="folder-paper folder-paper--amber" /><div className="folder-pocket"><FolderOpen size={50} strokeWidth={1.05} /></div></div></div>
       </button> : <Panel className="featured-project-card"><div className="library-no-results">No project in focus yet — create your first project.</div></Panel>}
       <Panel className="project-milestone-panel">
         <CardHeading
