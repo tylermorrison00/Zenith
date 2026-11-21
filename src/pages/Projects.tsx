@@ -211,12 +211,12 @@ export function ProjectsPage() {
     </div>
 
     <div className="projects-feature-grid">
-      {featured ? <button className="featured-project-card" onClick={() => navigate('/focus')}>
-        <div className="featured-project-meta"><span className="start-focus featured-focus-btn"><span className="plus-small">+</span> In focus</span></div>
-        <div className="featured-project-title">{featured.name}</div>
+      {featured ? <div className="featured-project-card">
+        <div className="featured-project-meta"><button className="start-focus featured-focus-btn" onClick={() => navigate('/focus')}><span className="plus-small">+</span> In focus</button></div>
+        <div className="featured-project-title" onClick={() => navigate(`/projects/${featured.id}`)} style={{ cursor: 'pointer' }}>{featured.name}</div>
         <div className="featured-project-subline">{`${pTotalFiles} ${pTotalFiles === 1 ? 'file' : 'files'}`}</div>
-        <div className="featured-project-bottom"><div className="featured-progress"><strong>{pPct}<small>%</small></strong><span>{pTotal > 0 ? `${pDone} of ${pTotal} tasks done` : `${featured.files} done`}</span></div><div className="folder-art-large"><span className="folder-paper folder-paper--one" /><span className="folder-paper folder-paper--two" /><span className="folder-paper folder-paper--amber" /><div className="folder-pocket"><FolderOpen size={50} strokeWidth={1.05} /></div></div></div>
-      </button> : <Panel className="featured-project-card"><div className="library-no-results">No project in focus yet — create your first project.</div></Panel>}
+        <div className="featured-project-bottom"><div className="featured-progress" onClick={() => navigate(`/projects/${featured.id}`)} style={{ cursor: 'pointer' }}><strong>{pPct}<small>%</small></strong><span>{pTotal > 0 ? `${pDone} of ${pTotal} tasks done` : `${featured.files} done`}</span></div><div className="folder-art-large" onClick={() => navigate(`/projects/${featured.id}`)} role="button" tabIndex={0} style={{ cursor: 'pointer' }}><span className="folder-paper folder-paper--one" /><span className="folder-paper folder-paper--two" /><span className="folder-paper folder-paper--amber" /><div className="folder-pocket"><FolderOpen size={50} strokeWidth={1.05} /></div></div></div>
+      </div> : <Panel className="featured-project-card"><div className="library-no-results">No project in focus yet — create your first project.</div></Panel>}
       <Panel className="project-milestone-panel">
         <CardHeading
           title="Milestones"
