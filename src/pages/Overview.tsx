@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, Plus, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, Headphones, Pause, Play, Plus, SkipBack, SkipForward, SlidersHorizontal, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, PageEyebrow, Panel, TinyPill, Toggle } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -8,6 +8,29 @@ import { startAmbientSound, stopAmbientSound } from '../lib/audio';
 import { currentWeekNumber, todayLabel } from '../lib/dates';
 import { useDashboard } from '../state/DashboardContext';
 import { completedTasksBeforeVisibleList } from '../data/seed';
+
+const TRACKS = [
+  {
+    title: 'Soft rain, brown noise',
+    desc: 'Deep block mix · loops until 11:00',
+    eq: 'Warm Ambient',
+  },
+  {
+    title: 'Binaural beats, 40Hz',
+    desc: 'Gamma focus flow · continuous loop',
+    eq: 'Clarity Boost',
+  },
+  {
+    title: 'Lo-fi night rain',
+    desc: 'Subtle keys & rainfall · deep work',
+    eq: 'Balanced Chill',
+  },
+  {
+    title: 'Forest stream, quiet wind',
+    desc: 'Organic nature mix · uninterrupted',
+    eq: 'Deep Bass',
+  },
+];
 
 function FolderTile({
   name,
@@ -58,6 +81,50 @@ export function OverviewPage() {
   const [week, setWeek] = useState(() => currentWeekNumber());
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [trackIndex, setTrackIndex] = useState(0);
+  const [trackSeconds, setTrackSeconds] = useState(18 * 60 + 24);
+  const totalSeconds = 70 * 60;
+
+  useEffect(() => {
+    if (!audioPlaying) return;
+    const interval = setInterval(() => {
+      setTrackSeconds((prev) => (prev >= totalSeconds ? 0 : prev + 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [audioPlaying, totalSeconds]);
+
+  const handlePrevTrack = () => {
+    setTrackIndex((prev) => (prev === 0 ? TRACKS.length - 1 : prev - 1));
+    if (audioPlaying) {
+      startAmbientSound().catch(() => {});
+    }
+  };
+
+  const handleNextTrack = () => {
+    setTrackIndex((prev) => (prev === TRACKS.length - 1 ? 0 : prev + 1));
+    if (audioPlaying) {
+      startAmbientSound().catch(() => {});
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+    setTrackSeconds(Math.floor(pct * totalSeconds));
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const currentTrack = TRACKS[trackIndex];
+  const progressPct = Math.min(100, Math.max(0, (trackSeconds / totalSeconds) * 100));
+  const currentTimeStr = formatTime(trackSeconds);
+  const remainingTimeStr = `${formatTime(totalSeconds - trackSeconds)} left`;
+
   const [addType, setAddType] = useState<'task' | 'note' | null>(null);
   const [showTasks, setShowTasks] = useState(false);
   const lastCheckClickTimeRef = useRef<number>(0);
@@ -580,10 +647,93 @@ export function OverviewPage() {
             ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>
             : <div className="library-no-results">No tasks yet — add your first one.</div>)}
         </Panel>
-        <Panel className={`sound-card ${audioPlaying ? 'sound-card--playing' : ''}`}>
-          <div className="sound-card-top"><span className="sound-icon"><Headphones size={15} /></span><div><strong>Soft rain, brown noise</strong><small>{audioPlaying ? 'Playing · looped ambience' : 'A quiet room for focus'}</small></div><button className="audio-toggle" aria-label={audioPlaying ? 'Pause ambient sound' : 'Play ambient sound'} onClick={toggleAudio}>{audioPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}</button></div>
-          <div className="waveform" aria-hidden="true">{[5, 9, 13, 8, 17, 11, 20, 8, 15, 23, 12, 18, 8, 21, 12, 16, 6, 12, 18, 8, 13, 5].map((height, index) => <i key={index} style={{ height: `${height}px`, animationDelay: `${index * 35}ms` }} />)}</div>
-        </Panel>
+        <div className={`music-player-card ${audioPlaying ? 'is-playing' : ''}`}>
+          <div className="music-player-top">
+            <div className="music-player-art">
+              <div className="music-player-orb" />
+            </div>
+            <div className="music-player-info">
+              <span className="music-player-label">NOW PLAYING</span>
+              <strong className="music-player-title">{currentTrack.title}</strong>
+              <span className="music-player-desc">{currentTrack.desc}</span>
+            </div>
+          </div>
+
+          <div className="music-player-progress-wrap">
+            <div
+              className="music-player-progress-bar"
+              onClick={handleProgressClick}
+              title="Click to seek"
+            >
+              <div
+                className="music-player-progress-fill"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <div className="music-player-times">
+              <span>{currentTimeStr}</span>
+              <span>{remainingTimeStr}</span>
+            </div>
+          </div>
+
+          <div className="music-player-controls">
+            <button
+              type="button"
+              className="music-btn-circle"
+              title="Equalizer presets"
+              aria-label="Equalizer presets"
+              onClick={() => notify(`Sound profile: ${currentTrack.eq}`)}
+            >
+              <SlidersHorizontal size={13} strokeWidth={2} />
+            </button>
+
+            <div className="music-player-mid-controls">
+              <button
+                type="button"
+                className="music-btn-skip"
+                title="Previous sound"
+                aria-label="Previous sound"
+                onClick={handlePrevTrack}
+              >
+                <SkipBack size={15} strokeWidth={2.2} fill="currentColor" />
+              </button>
+
+              <button
+                type="button"
+                className="music-btn-play"
+                title={audioPlaying ? 'Pause sound' : 'Play sound'}
+                aria-label={audioPlaying ? 'Pause sound' : 'Play sound'}
+                onClick={toggleAudio}
+              >
+                {audioPlaying ? (
+                  <Pause size={15} strokeWidth={2.4} fill="currentColor" />
+                ) : (
+                  <Play size={15} strokeWidth={2.4} fill="currentColor" style={{ marginLeft: 2 }} />
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="music-btn-skip"
+                title="Next sound"
+                aria-label="Next sound"
+                onClick={handleNextTrack}
+              >
+                <SkipForward size={15} strokeWidth={2.2} fill="currentColor" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="music-btn-circle music-btn-headphones"
+              title="Headphones mode"
+              aria-label="Headphones mode"
+              onClick={() => notify('Headphones mode active')}
+            >
+              <Headphones size={13} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
       </aside>
 
       <section className="overview-focus-column">
