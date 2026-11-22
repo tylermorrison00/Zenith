@@ -9,9 +9,9 @@
 // on the user's machine (the old zip + `npm install` + `npm run build` flow
 // could never run there, so updates silently did nothing). The Zenith repo is
 // public, so no token is needed.
-const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage, screen, shell, clipboard } = require('electron');
 app.setAppUserModelId('com.zenith.app');
-const { spawn } = require('child_process');
+const { spawn, execFile, exec } = require('child_process');
 const fs = require('fs');
 const https = require('https');
 const os = require('os');
@@ -196,7 +196,12 @@ if (!gotLock) {
     else { try { createWindow(); } catch {} }
   });
 }
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  setTimeout(() => {
+    createSideDockWindow();
+  }, 1000);
+});
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (!win) createWindow(); });
 
@@ -441,4 +446,708 @@ ipcMain.handle('update-install', async () => {
   }
   setTimeout(() => { app.quit(); }, 500);
   return { ok: true, message: 'Installing — the app will restart.' };
+});
+
+// =============================================================================
+// ZENITH SIDE DOCK — Edge sidebar for Windows with synced Tasks, Notes, Habits
+// =============================================================================
+
+let sideDockWin = null;
+let sideDockPanelOpen = false;
+let sideDockAutoHide = false;
+let sideDockHidden = false;
+let sideDockAutoStart = true;
+let sideDockEnabled = true;
+let sideDockSettingsPath = '';
+let sideDockToolsPath = '';
+let dashboardCachePath = '';
+let sideDockHideTimeout = null;
+let sideDockMouseTimer = null;
+let sideDockOutsideCount = 0;
+let sideDockLaunchAt = Date.now();
+
+let dashboardCache = {
+  tasks: [],
+  notes: [],
+  habits: [],
+  theme: 'amber',
+};
+
+function initSideDockPaths() {
+  if (!sideDockSettingsPath) {
+    sideDockSettingsPath = path.join(app.getPath('userData'), 'sidedock-settings.json');
+    sideDockToolsPath = path.join(app.getPath('userData'), 'sidedock-tools.json');
+    dashboardCachePath = path.join(app.getPath('userData'), 'dashboard-cache.json');
+  }
+}
+
+function loadSideDockSettings() {
+  initSideDockPaths();
+  try {
+    const raw = fs.readFileSync(sideDockSettingsPath, 'utf8');
+    const data = JSON.parse(raw);
+    if (typeof data.enabled === 'boolean') sideDockEnabled = data.enabled;
+    if (typeof data.autoHide === 'boolean') sideDockAutoHide = data.autoHide;
+    if (typeof data.autoStart === 'boolean') sideDockAutoStart = data.autoStart;
+  } catch {}
+}
+
+function saveSideDockSettings() {
+  initSideDockPaths();
+  try {
+    fs.writeFileSync(
+      sideDockSettingsPath,
+      JSON.stringify(
+        {
+          enabled: sideDockEnabled,
+          autoHide: sideDockAutoHide,
+          autoStart: sideDockAutoStart,
+        },
+        null,
+        2
+      )
+    );
+  } catch {}
+}
+
+function loadSideDockTools() {
+  initSideDockPaths();
+  let defaults = [];
+  try {
+    defaults = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'sidedock', 'tools.json'), 'utf8'));
+  } catch {}
+  try {
+    const existing = JSON.parse(fs.readFileSync(sideDockToolsPath, 'utf8'));
+    let changed = false;
+    for (const d of defaults) {
+      const ex = existing.find((x) => x.id === d.id);
+      if (!ex) {
+        existing.push(d);
+        changed = true;
+      }
+    }
+    if (changed) {
+      try {
+        fs.writeFileSync(sideDockToolsPath, JSON.stringify(existing, null, 2));
+      } catch {}
+    }
+    return existing;
+  } catch {}
+  try {
+    fs.writeFileSync(sideDockToolsPath, JSON.stringify(defaults, null, 2));
+  } catch {}
+  return defaults;
+}
+
+function saveSideDockTools(tools) {
+  initSideDockPaths();
+  try {
+    fs.writeFileSync(sideDockToolsPath, JSON.stringify(tools, null, 2));
+  } catch {}
+}
+
+function loadDashboardCache() {
+  initSideDockPaths();
+  try {
+    const raw = fs.readFileSync(dashboardCachePath, 'utf8');
+    const data = JSON.parse(raw);
+    if (data) dashboardCache = { ...dashboardCache, ...data };
+  } catch {}
+}
+
+function saveDashboardCache() {
+  initSideDockPaths();
+  try {
+    fs.writeFileSync(dashboardCachePath, JSON.stringify(dashboardCache, null, 2));
+  } catch {}
+}
+
+function sideDockCardSize(panelOpen) {
+  try {
+    const primary = screen.getPrimaryDisplay();
+    const area = primary ? primary.workArea : { x: 0, y: 0, width: 1920, height: 1080 };
+    const width = panelOpen ? 372 : 220;
+    return {
+      width,
+      height: Math.max(400, area.height - 16),
+      x: area.x + area.width - width - 4,
+      y: area.y + 8,
+    };
+  } catch {
+    return { width: 220, height: 800, x: 1700, y: 8 };
+  }
+}
+
+function createSideDockWindow() {
+  if (sideDockWin && !sideDockWin.isDestroyed()) {
+    sideDockWin.show();
+    return;
+  }
+  loadSideDockSettings();
+  loadDashboardCache();
+  if (!sideDockEnabled) return;
+
+  const s = sideDockCardSize(sideDockPanelOpen);
+  sideDockWin = new BrowserWindow({
+    width: s.width,
+    height: s.height,
+    x: s.x,
+    y: s.y,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    title: 'Zenith Side Dock',
+    icon: path.join(APP_ROOT, 'build', 'icon.ico'),
+    webPreferences: {
+      preload: path.join(APP_ROOT, 'sidedock', 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  sideDockWin.loadFile(path.join(APP_ROOT, 'sidedock', 'index.html'));
+  sideDockWin.on('closed', () => {
+    sideDockWin = null;
+  });
+  sideDockLaunchAt = Date.now();
+  startSideDockMousePoll();
+}
+
+function slideSideDockToHidden(next) {
+  if (!sideDockWin || sideDockWin.isDestroyed()) return;
+  sideDockHidden = !!next;
+  const area = screen.getPrimaryDisplay().workArea;
+  const s = sideDockCardSize(sideDockPanelOpen);
+  if (sideDockHideTimeout) {
+    clearInterval(sideDockHideTimeout);
+    sideDockHideTimeout = null;
+  }
+  if (sideDockHidden) {
+    try { sideDockWin.webContents.send('sidedock-auto-hide-hide'); } catch {}
+    const startX = sideDockWin.getBounds().x;
+    const targetX = area.x + area.width - 28;
+    const steps = 12;
+    let i = 0;
+    sideDockHideTimeout = setInterval(() => {
+      i++;
+      try {
+        const x = Math.round(startX + (targetX - startX) * (i / steps));
+        sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
+        if (i >= steps) {
+          clearInterval(sideDockHideTimeout);
+          sideDockHideTimeout = null;
+          try { sideDockWin.setIgnoreMouseEvents(true, { forward: true }); } catch {}
+          try { sideDockWin.webContents.send('sidedock-auto-hide-arrow-only'); } catch {}
+        }
+      } catch {
+        clearInterval(sideDockHideTimeout);
+        sideDockHideTimeout = null;
+      }
+    }, 25);
+  } else {
+    try { sideDockWin.webContents.send('sidedock-auto-hide-show'); } catch {}
+    const startX = sideDockWin.getBounds().x;
+    const targetX = s.x;
+    const steps = 12;
+    let i = 0;
+    sideDockHideTimeout = setInterval(() => {
+      i++;
+      try {
+        const x = Math.round(startX + (targetX - startX) * (i / steps));
+        sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
+        if (i >= steps) {
+          clearInterval(sideDockHideTimeout);
+          sideDockHideTimeout = null;
+        }
+      } catch {
+        clearInterval(sideDockHideTimeout);
+        sideDockHideTimeout = null;
+      }
+    }, 25);
+    try { sideDockWin.setIgnoreMouseEvents(false, { forward: true }); } catch {}
+  }
+}
+
+function startSideDockMousePoll() {
+  if (sideDockMouseTimer) return;
+  sideDockLaunchAt = Date.now();
+  sideDockMouseTimer = setInterval(() => {
+    try {
+      if (!sideDockWin || sideDockWin.isDestroyed()) return;
+      if (!sideDockAutoHide || sideDockHidden || sideDockPanelOpen) {
+        sideDockOutsideCount = 0;
+        return;
+      }
+      if (Date.now() - sideDockLaunchAt < 8000) return;
+      const pt = screen.getCursorScreenPoint();
+      const b = sideDockWin.getBounds();
+      const inside = pt.x >= b.x && pt.x <= b.x + b.width && pt.y >= b.y && pt.y <= b.y + b.height;
+      if (!inside) {
+        sideDockOutsideCount++;
+        if (sideDockOutsideCount >= 2) {
+          sideDockOutsideCount = 0;
+          slideSideDockToHidden(true);
+        }
+      } else {
+        sideDockOutsideCount = 0;
+      }
+    } catch {}
+  }, 500);
+}
+
+// Extra Dim display overlay
+let extraDimWin = null;
+let extraDimLevel = 0;
+function applyExtraDim(lvl) {
+  extraDimLevel = Math.max(0, Math.min(80, parseInt(lvl, 10) || 0));
+  if (extraDimLevel <= 0) {
+    try {
+      if (extraDimWin && !extraDimWin.isDestroyed()) extraDimWin.close();
+    } catch {}
+    extraDimWin = null;
+    return;
+  }
+  if (!extraDimWin || extraDimWin.isDestroyed()) {
+    extraDimWin = new BrowserWindow({
+      fullscreen: true,
+      frame: false,
+      transparent: false,
+      backgroundColor: '#000000',
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      focusable: false,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      closable: true,
+      show: false,
+    });
+    try { extraDimWin.setIgnoreMouseEvents(true, { forward: true }); } catch {}
+    try { extraDimWin.setAlwaysOnTop(true, 'screen-saver'); } catch {}
+    extraDimWin.on('closed', () => { extraDimWin = null; });
+  }
+  try { extraDimWin.setOpacity(extraDimLevel / 100); } catch {}
+  try { if (!extraDimWin.isVisible()) extraDimWin.showInactive(); } catch {}
+}
+
+let warmLevel = 0;
+let warmProc = null;
+let warmPending = null;
+function applyWarm(lvl) {
+  warmLevel = Math.max(0, Math.min(100, parseInt(lvl, 10) || 0));
+  if (warmProc) {
+    warmPending = warmLevel;
+    return;
+  }
+  const runWarm = (level) => {
+    const src = path.join(APP_ROOT, 'sidedock', 'scripts', 'warm.ps1');
+    const tmp = path.join(os.tmpdir(), 'zenith-sidedock-warm.ps1');
+    try { fs.copyFileSync(src, tmp); } catch {}
+    const cmd = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tmp}" -WarmPercent ${level}`;
+    warmProc = exec(cmd, () => {
+      warmProc = null;
+      if (warmPending !== null && warmPending !== level) {
+        const next = warmPending;
+        warmPending = null;
+        runWarm(next);
+      } else {
+        warmPending = null;
+      }
+    });
+  };
+  runWarm(warmLevel);
+}
+
+function runPowerShellScript(scriptName, args = '') {
+  return new Promise((resolve) => {
+    const src = path.join(APP_ROOT, 'sidedock', 'scripts', scriptName);
+    const tmp = path.join(os.tmpdir(), `zenith-${scriptName}`);
+    try { fs.copyFileSync(src, tmp); } catch {}
+    const cmd = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${tmp}" ${args}`;
+    exec(cmd, (err, stdout) => {
+      resolve({ err, stdout: String(stdout || '').trim() });
+    });
+  });
+}
+
+// Side Dock IPC Handlers
+ipcMain.handle('sidedock-get-state', () => {
+  loadSideDockSettings();
+  loadDashboardCache();
+  return {
+    panelOpen: sideDockPanelOpen,
+    autoHide: sideDockAutoHide,
+    autoStart: sideDockAutoStart,
+    theme: dashboardCache.theme || 'amber',
+    tools: loadSideDockTools(),
+  };
+});
+
+ipcMain.handle('sidedock-set-panel', (_e, next) => {
+  sideDockPanelOpen = !!next;
+  try {
+    if (sideDockWin && !sideDockWin.isDestroyed()) {
+      const s = sideDockCardSize(sideDockPanelOpen);
+      sideDockWin.setBounds({ x: s.x, y: s.y, width: s.width, height: s.height }, true);
+    }
+  } catch {}
+  return sideDockPanelOpen;
+});
+
+ipcMain.handle('sidedock-set-hidden', (_e, next) => {
+  if (!sideDockAutoHide) {
+    sideDockHidden = false;
+    return sideDockHidden;
+  }
+  slideSideDockToHidden(next);
+  return sideDockHidden;
+});
+
+ipcMain.handle('sidedock-set-autohide', (_e, next) => {
+  sideDockAutoHide = !!next;
+  saveSideDockSettings();
+  if (!sideDockAutoHide) slideSideDockToHidden(false);
+  return sideDockAutoHide;
+});
+
+ipcMain.handle('sidedock-show-from-arrow', () => {
+  slideSideDockToHidden(false);
+  return sideDockHidden;
+});
+
+ipcMain.handle('sidedock-set-autostart', (_e, next) => {
+  sideDockAutoStart = !!next;
+  saveSideDockSettings();
+  return sideDockAutoStart;
+});
+
+ipcMain.handle('sidedock-set-theme', (_e, next) => {
+  dashboardCache.theme = next;
+  saveDashboardCache();
+  return dashboardCache.theme;
+});
+
+ipcMain.handle('sidedock-set-mouse-events', (_e, ignore) => {
+  try {
+    if (sideDockWin && !sideDockWin.isDestroyed()) {
+      sideDockWin.setIgnoreMouseEvents(!!ignore, { forward: true });
+    }
+  } catch {}
+  return true;
+});
+
+ipcMain.handle('sidedock-add-tool', (_e, tool) => {
+  const tools = loadSideDockTools();
+  tools.push({
+    id: Date.now().toString(),
+    name: String(tool.name || 'Tool').slice(0, 40),
+    icon: String(tool.icon || '◆').slice(0, 4),
+    target: String(tool.target || ''),
+    kind: tool.kind === 'app' ? 'app' : 'url',
+  });
+  saveSideDockTools(tools);
+  return tools;
+});
+
+ipcMain.handle('sidedock-remove-tool', (_e, id) => {
+  const tools = loadSideDockTools().filter((t) => t.id !== id);
+  saveSideDockTools(tools);
+  return tools;
+});
+
+ipcMain.handle('sidedock-launch-tool', (_e, tool) => {
+  if (!tool || !tool.target) return;
+  if (tool.kind === 'url') {
+    shell.openExternal(tool.target);
+    return;
+  }
+  if (fs.existsSync(tool.target)) {
+    shell.openPath(tool.target);
+    return;
+  }
+  exec(tool.target, (err) => {
+    if (err) console.error('launch tool err:', err.message);
+  });
+});
+
+ipcMain.handle('sidedock-window-min', () => sideDockWin && sideDockWin.minimize());
+ipcMain.handle('sidedock-window-close', () => sideDockWin && sideDockWin.close());
+ipcMain.handle('sidedock-open-external', (_e, url) => {
+  try { shell.openExternal(String(url)); } catch {}
+});
+
+// Tasks (Synced with Zenith)
+ipcMain.handle('sidedock-get-todos', () => {
+  return (dashboardCache.tasks || []).map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+ipcMain.handle('sidedock-add-todo', (_e, text) => {
+  const title = String(text || '').trim().slice(0, 200);
+  if (!title) return (dashboardCache.tasks || []).map((t) => ({ id: t.id, text: t.title, done: t.done }));
+  const newTask = {
+    id: Date.now().toString(),
+    title,
+    project: 'Work',
+    priority: 'normal',
+    done: false,
+  };
+  dashboardCache.tasks = [newTask, ...(dashboardCache.tasks || [])];
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'ADD_TASK', task: newTask }); } catch {}
+  }
+  return dashboardCache.tasks.map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+ipcMain.handle('sidedock-toggle-todo', (_e, id) => {
+  dashboardCache.tasks = (dashboardCache.tasks || []).map((t) =>
+    t.id === id ? { ...t, done: !t.done } : t
+  );
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'TOGGLE_TASK', id }); } catch {}
+  }
+  return dashboardCache.tasks.map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+ipcMain.handle('sidedock-delete-todo', (_e, id) => {
+  dashboardCache.tasks = (dashboardCache.tasks || []).filter((t) => t.id !== id);
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'DELETE_TASK', id }); } catch {}
+  }
+  return dashboardCache.tasks.map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+ipcMain.handle('sidedock-edit-todo', (_e, id, text) => {
+  const title = String(text || '').trim().slice(0, 200);
+  dashboardCache.tasks = (dashboardCache.tasks || []).map((t) =>
+    t.id === id ? { ...t, title } : t
+  );
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'EDIT_TASK', id, title }); } catch {}
+  }
+  return dashboardCache.tasks.map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+ipcMain.handle('sidedock-restore-todo', (_e, item) => {
+  if (!item) return (dashboardCache.tasks || []).map((t) => ({ id: t.id, text: t.title, done: t.done }));
+  const restored = {
+    id: item.id || Date.now().toString(),
+    title: item.text || item.title || 'Task',
+    project: 'Work',
+    priority: 'normal',
+    done: !!item.done,
+  };
+  dashboardCache.tasks = [restored, ...(dashboardCache.tasks || [])];
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'ADD_TASK', task: restored }); } catch {}
+  }
+  return dashboardCache.tasks.map((t) => ({ id: t.id, text: t.title, done: t.done }));
+});
+
+// Notes (Synced with Zenith)
+ipcMain.handle('sidedock-get-notes', () => {
+  return (dashboardCache.notes || []).map((n) => ({
+    id: n.id,
+    title: n.title,
+    text: n.body || n.excerpt || '',
+  }));
+});
+
+ipcMain.handle('sidedock-add-note', (_e, data) => {
+  const title = typeof data === 'object' ? String(data.title || '').slice(0, 200) : '';
+  const text = typeof data === 'object' ? String(data.text || '').slice(0, 5000) : String(data || '').slice(0, 5000);
+  if (!text.trim() && !title.trim()) return (dashboardCache.notes || []).map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+  const newNote = {
+    id: Date.now().toString(),
+    title: title.trim() || text.split('\n')[0].slice(0, 50) || 'Untitled note',
+    excerpt: text.slice(0, 120),
+    body: text,
+    project: 'Work',
+    updated: 'Just now',
+  };
+  dashboardCache.notes = [newNote, ...(dashboardCache.notes || [])];
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'ADD_NOTE', note: newNote }); } catch {}
+  }
+  return dashboardCache.notes.map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+});
+
+ipcMain.handle('sidedock-copy-note', (_e, text) => {
+  try { clipboard.writeText(String(text || '')); } catch {}
+  return true;
+});
+
+ipcMain.handle('sidedock-delete-note', (_e, id) => {
+  dashboardCache.notes = (dashboardCache.notes || []).filter((n) => n.id !== id);
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'DELETE_NOTE', id }); } catch {}
+  }
+  return dashboardCache.notes.map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+});
+
+ipcMain.handle('sidedock-edit-note', (_e, id, data) => {
+  const title = typeof data === 'object' ? String(data.title || '') : '';
+  const text = typeof data === 'object' ? String(data.text || '') : String(data || '');
+  dashboardCache.notes = (dashboardCache.notes || []).map((n) =>
+    n.id === id ? { ...n, title: title || n.title, excerpt: text.slice(0, 120), body: text } : n
+  );
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'EDIT_NOTE', id, title, text }); } catch {}
+  }
+  return dashboardCache.notes.map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+});
+
+ipcMain.handle('sidedock-restore-note', (_e, item) => {
+  if (!item) return (dashboardCache.notes || []).map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+  const restored = {
+    id: item.id || Date.now().toString(),
+    title: item.title || 'Note',
+    excerpt: (item.text || '').slice(0, 120),
+    body: item.text || '',
+    project: 'Work',
+    updated: 'Just now',
+  };
+  dashboardCache.notes = [restored, ...(dashboardCache.notes || [])];
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'ADD_NOTE', note: restored }); } catch {}
+  }
+  return dashboardCache.notes.map((n) => ({ id: n.id, title: n.title, text: n.body || n.excerpt }));
+});
+
+// Habits (Synced with Zenith)
+ipcMain.handle('sidedock-get-habits', () => {
+  return dashboardCache.habits || [];
+});
+
+ipcMain.handle('sidedock-toggle-habit', (_e, id) => {
+  dashboardCache.habits = (dashboardCache.habits || []).map((h) => {
+    if (h.id !== id) return h;
+    const nextDone = !h.done;
+    return {
+      ...h,
+      done: nextDone,
+      streak: nextDone ? h.streak + 1 : Math.max(0, h.streak - 1),
+    };
+  });
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'TOGGLE_HABIT', id }); } catch {}
+  }
+  return dashboardCache.habits;
+});
+
+ipcMain.handle('sidedock-add-habit', (_e, name) => {
+  const title = String(name || '').trim().slice(0, 200);
+  if (!title) return dashboardCache.habits;
+  const newHabit = {
+    id: Date.now().toString(),
+    title,
+    detail: '',
+    streak: 0,
+    done: false,
+    history: Array(28).fill(false),
+  };
+  dashboardCache.habits = [...(dashboardCache.habits || []), newHabit];
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'ADD_HABIT', habit: newHabit }); } catch {}
+  }
+  return dashboardCache.habits;
+});
+
+ipcMain.handle('sidedock-delete-habit', (_e, id) => {
+  dashboardCache.habits = (dashboardCache.habits || []).filter((h) => h.id !== id);
+  saveDashboardCache();
+  if (win && !win.isDestroyed()) {
+    try { win.webContents.send('sidedock-action', { type: 'DELETE_HABIT', id }); } catch {}
+  }
+  return dashboardCache.habits;
+});
+
+// Display Controls
+ipcMain.handle('sidedock-get-extra-dim', () => ({ level: extraDimLevel }));
+ipcMain.handle('sidedock-set-extra-dim', (_e, lvl) => {
+  applyExtraDim(lvl);
+  return { level: extraDimLevel };
+});
+ipcMain.handle('sidedock-get-warm', () => ({ level: warmLevel }));
+ipcMain.handle('sidedock-set-warm', (_e, lvl) => {
+  applyWarm(lvl);
+  return { level: warmLevel };
+});
+ipcMain.handle('sidedock-get-nightlight', async () => {
+  const res = await runPowerShellScript('nightlight-state.ps1');
+  return { ok: true, on: res.stdout === 'ON' };
+});
+ipcMain.handle('sidedock-toggle-nightlight', async () => {
+  const res = await runPowerShellScript('nightlight-silent.ps1');
+  return { ok: res.stdout === 'OK', raw: res.stdout };
+});
+ipcMain.handle('sidedock-get-nightlight-strength', async () => {
+  const res = await runPowerShellScript('nightlight-strength.ps1', '-Action get');
+  const n = parseInt(res.stdout, 10);
+  return { ok: !isNaN(n), level: isNaN(n) ? 50 : n };
+});
+ipcMain.handle('sidedock-set-nightlight-strength', async (_e, lvl) => {
+  const val = Math.max(0, Math.min(100, parseInt(lvl, 10) || 0));
+  await runPowerShellScript('nightlight-strength.ps1', `-Action set -Percent ${val}`);
+  return { ok: true };
+});
+
+// Zenith Main Window Bridge
+ipcMain.handle('sidedock-get-enabled', () => {
+  loadSideDockSettings();
+  return sideDockEnabled;
+});
+
+ipcMain.handle('sidedock-set-enabled', (_e, enabled) => {
+  sideDockEnabled = !!enabled;
+  saveSideDockSettings();
+  if (sideDockEnabled) {
+    if (!sideDockWin || sideDockWin.isDestroyed()) {
+      createSideDockWindow();
+    } else {
+      sideDockWin.show();
+    }
+  } else {
+    if (sideDockWin && !sideDockWin.isDestroyed()) {
+      sideDockWin.close();
+      sideDockWin = null;
+    }
+  }
+  return sideDockEnabled;
+});
+
+ipcMain.handle('sidedock-sync-from-zenith', (_e, payload) => {
+  if (!payload) return false;
+  dashboardCache = {
+    ...dashboardCache,
+    tasks: payload.tasks ?? dashboardCache.tasks,
+    notes: payload.notes ?? dashboardCache.notes,
+    habits: payload.habits ?? dashboardCache.habits,
+    theme: payload.theme ?? dashboardCache.theme,
+  };
+  saveDashboardCache();
+  if (sideDockWin && !sideDockWin.isDestroyed()) {
+    try {
+      sideDockWin.webContents.send('sidedock-data-updated', dashboardCache);
+      if (payload.theme) {
+        sideDockWin.webContents.send('sidedock-theme-changed', payload.theme);
+      }
+    } catch {}
+  }
+  return true;
 });

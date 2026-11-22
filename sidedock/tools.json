@@ -1,0 +1,46 @@
+[
+  {
+    "id": "todo-list",
+    "name": "To Do List",
+    "icon": "",
+    "target": "todo",
+    "kind": "app",
+    "logo": "todo-logo-orange-final-inverted.png",
+    "logoLight": "todo-logo-orange-final-inverted.png",
+    "iconOutline": "todo-icon-outline.png",
+    "iconAccent": "todo-icon-accent.png"
+  },
+  {
+    "id": "notes",
+    "name": "Notes",
+    "icon": "",
+    "target": "notes",
+    "kind": "app",
+    "logo": "notes-logo-orange-final.png",
+    "logoLight": "notes-logo-orange-final.png",
+    "iconOutline": "notes-icon-outline.png",
+    "iconAccent": "notes-icon-accent.png"
+  },
+  {
+    "id": "habit-tracker",
+    "name": "Habit Tracker",
+    "icon": "",
+    "target": "habit",
+    "kind": "app",
+    "logo": "habit-tracker-logo.png",
+    "logoLight": "habit-tracker-logo.png",
+    "iconOutline": "habit-tracker-logo.png",
+    "iconAccent": "habit-tracker-logo.png"
+  },
+  {
+    "id": "brightness-control",
+    "name": "Brightness Control",
+    "icon": "",
+    "target": "brightness",
+    "kind": "app",
+    "logo": "brightness-logo.png",
+    "logoLight": "brightness-logo.png",
+    "iconOutline": "brightness-logo.png",
+    "iconAccent": "brightness-logo.png"
+  }
+]

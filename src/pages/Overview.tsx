@@ -173,7 +173,7 @@ function MetricCard({
 
 export function OverviewPage() {
   const navigate = useNavigate();
-  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, notes, projectFiles, timer, notify, sidebarVisible } = useDashboard();
+  const { rituals, toggleRitual, habits, toggleHabit, tasks, toggleTask, projects, notes, projectFiles, timer, notify } = useDashboard();
   const [folderQuery, setFolderQuery] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [trackIndex, setTrackIndex] = useState(0);
@@ -802,9 +802,8 @@ export function OverviewPage() {
   }
 
   return <div className="overview-page">
-    <div className={`overview-top-grid ${!sidebarVisible ? 'overview-top-grid--no-sidebar' : ''}`}>
-      {sidebarVisible && (
-        <aside className="overview-sidebar">
+    <div className="overview-top-grid">
+      <aside className="overview-sidebar">
         <Panel className="library-panel">
           <CardHeading title="Library" />
           <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes..." value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
@@ -885,7 +884,6 @@ export function OverviewPage() {
           </div>
         </Panel>
       </aside>
-      )}
 
       <section className="overview-focus-column">
         <div className="overview-heading-row">

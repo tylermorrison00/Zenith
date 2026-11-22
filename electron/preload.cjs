@@ -46,4 +46,13 @@ contextBridge.exposeInMainWorld('zenith', {
     return () => ipcRenderer.removeListener('window-maximized-changed', listener);
   },
   setThemeIcon: (theme) => ipcRenderer.invoke('set-theme-icon', theme),
+  // Side Dock desktop integration
+  getSideDockEnabled: () => ipcRenderer.invoke('sidedock-get-enabled'),
+  setSideDockEnabled: (enabled) => ipcRenderer.invoke('sidedock-set-enabled', enabled),
+  syncToSideDock: (payload) => ipcRenderer.invoke('sidedock-sync-from-zenith', payload),
+  onSideDockAction: (callback) => {
+    const listener = (_event, action) => callback(action);
+    ipcRenderer.on('sidedock-action', listener);
+    return () => ipcRenderer.removeListener('sidedock-action', listener);
+  },
 });

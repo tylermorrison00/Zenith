@@ -57,8 +57,8 @@ export function SettingsPage({ theme, onSelectTheme }: SettingsPageProps) {
         <Panel className="settings-panel">
           <div className="settings-panel-head">
             <div>
-              <h2 className="settings-panel-title">Layout &amp; Navigation</h2>
-              <p className="settings-panel-desc">Customize which panels are docked on your main dashboard.</p>
+              <h2 className="settings-panel-title">Desktop Side Dock</h2>
+              <p className="settings-panel-desc">Dock a floating edge sidebar to the right edge of your laptop screen.</p>
             </div>
           </div>
 
@@ -67,7 +67,7 @@ export function SettingsPage({ theme, onSelectTheme }: SettingsPageProps) {
               className="settings-card-row"
               onClick={() => {
                 toggleSidebar();
-                notify(!sidebarVisible ? 'Sidebar enabled' : 'Sidebar hidden');
+                notify(!sidebarVisible ? 'Desktop Side Dock docked' : 'Desktop Side Dock closed');
               }}
               role="button"
               tabIndex={0}
@@ -75,7 +75,7 @@ export function SettingsPage({ theme, onSelectTheme }: SettingsPageProps) {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   toggleSidebar();
-                  notify(!sidebarVisible ? 'Sidebar enabled' : 'Sidebar hidden');
+                  notify(!sidebarVisible ? 'Desktop Side Dock docked' : 'Desktop Side Dock closed');
                 }
               }}
             >
@@ -84,19 +84,19 @@ export function SettingsPage({ theme, onSelectTheme }: SettingsPageProps) {
               </div>
               <div className="settings-card-info">
                 <div className="settings-card-title-wrap">
-                  <strong>Overview Sidebar</strong>
-                  <span className="settings-tag">Side dock</span>
+                  <strong>Side Dock</strong>
+                  <span className="settings-tag">Edge dock</span>
                   <span className={`settings-status-pill ${sidebarVisible ? 'is-active' : ''}`}>
-                    {sidebarVisible ? 'Docked' : 'Hidden'}
+                    {sidebarVisible ? 'Docked on screen' : 'Closed'}
                   </span>
                 </div>
                 <p className="settings-card-subtitle">
-                  Show or hide the Library panel on the Overview page.
+                  Show or hide the floating productivity sidebar on your Windows desktop.
                 </p>
                 <div className="settings-card-hint">
                   {sidebarVisible
-                    ? 'The Library panel is docked on the left, displaying daily rituals and today’s focus flow.'
-                    : 'Library panel is hidden. Focus and Insights columns stretch to fill full workspace width.'}
+                    ? 'Active: Floating rail docked to the right edge of your screen with synchronized Tasks, Notes, Habits, and Display controls.'
+                    : 'Turn on to dock the floating sidebar to your laptop screen.'}
                 </div>
               </div>
               <div className="settings-card-action">
@@ -166,7 +166,7 @@ export function SettingsPage({ theme, onSelectTheme }: SettingsPageProps) {
             </div>
             <div className="settings-app-badge">
               <ShieldCheck size={13} />
-              <span>Zenith v1.0.28</span>
+              <span>Zenith v1.0.29</span>
             </div>
           </div>
         </Panel>

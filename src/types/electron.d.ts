@@ -51,6 +51,10 @@ export interface ZenithBridge {
   isMaximized: () => Promise<boolean>;
   onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void;
   setThemeIcon?: (theme: string) => Promise<boolean>;
+  getSideDockEnabled?: () => Promise<boolean>;
+  setSideDockEnabled?: (enabled: boolean) => Promise<boolean>;
+  syncToSideDock?: (payload: { tasks: any[]; notes: any[]; habits: any[]; theme: string }) => Promise<boolean>;
+  onSideDockAction?: (callback: (action: { type: string; [key: string]: any }) => void) => () => void;
 }
 
 declare global {

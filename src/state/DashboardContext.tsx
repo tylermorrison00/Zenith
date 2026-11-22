@@ -508,17 +508,108 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.zenith?.getSideDockEnabled) {
+      window.zenith.getSideDockEnabled().then((enabled) => {
+        if (typeof enabled === 'boolean') {
+          setSidebarVisibleState(enabled);
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   const setSidebarVisible = useCallback((visible: boolean) => {
     setSidebarVisibleState(visible);
     localStorage.setItem('zenith-sidebar-visible', JSON.stringify(visible));
+    if (typeof window !== 'undefined' && window.zenith?.setSideDockEnabled) {
+      window.zenith.setSideDockEnabled(visible).catch(() => {});
+    }
   }, []);
 
   const toggleSidebar = useCallback(() => {
     setSidebarVisibleState((prev) => {
       const next = !prev;
       localStorage.setItem('zenith-sidebar-visible', JSON.stringify(next));
+      if (typeof window !== 'undefined' && window.zenith?.setSideDockEnabled) {
+        window.zenith.setSideDockEnabled(next).catch(() => {});
+      }
       return next;
     });
+  }, []);
+
+  // Sync state (tasks, notes, habits, theme) to Side Dock
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.zenith?.syncToSideDock) {
+      const theme = document.documentElement.dataset.theme || 'amber';
+      window.zenith.syncToSideDock({
+        tasks: state.tasks,
+        notes: state.notes,
+        habits: state.habits,
+        theme,
+      }).catch(() => {});
+    }
+  }, [state.tasks, state.notes, state.habits]);
+
+  // Handle incoming real-time changes from Side Dock
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.zenith?.onSideDockAction) return;
+    const unsub = window.zenith.onSideDockAction((action: { type: string; [key: string]: any }) => {
+      if (!action || !action.type) return;
+      if (action.type === 'TOGGLE_TASK' && action.id) {
+        setState((current) => ({
+          ...current,
+          tasks: current.tasks.map((t) => (t.id === action.id ? { ...t, done: !t.done } : t)),
+        }));
+      } else if (action.type === 'ADD_TASK' && action.task) {
+        setState((current) => {
+          if (current.tasks.some((t) => t.id === action.task.id)) return current;
+          return { ...current, tasks: [action.task, ...current.tasks] };
+        });
+      } else if (action.type === 'DELETE_TASK' && action.id) {
+        setState((current) => ({
+          ...current,
+          tasks: current.tasks.filter((t) => t.id !== action.id),
+        }));
+      } else if (action.type === 'EDIT_TASK' && action.id) {
+        setState((current) => ({
+          ...current,
+          tasks: current.tasks.map((t) => (t.id === action.id ? { ...t, title: action.title } : t)),
+        }));
+      } else if (action.type === 'ADD_NOTE' && action.note) {
+        setState((current) => {
+          if (current.notes.some((n) => n.id === action.note.id)) return current;
+          return { ...current, notes: [action.note, ...current.notes] };
+        });
+      } else if (action.type === 'DELETE_NOTE' && action.id) {
+        setState((current) => ({
+          ...current,
+          notes: current.notes.filter((n) => n.id !== action.id),
+        }));
+      } else if (action.type === 'EDIT_NOTE' && action.id) {
+        setState((current) => ({
+          ...current,
+          notes: current.notes.map((n) => (n.id === action.id ? { ...n, title: action.title, excerpt: action.text, body: action.text } : n)),
+        }));
+      } else if (action.type === 'TOGGLE_HABIT' && action.id) {
+        setState((current) => ({
+          ...current,
+          habits: current.habits.map((h) => (h.id === action.id ? { ...h, done: !h.done, streak: !h.done ? h.streak + 1 : Math.max(0, h.streak - 1) } : h)),
+        }));
+      } else if (action.type === 'ADD_HABIT' && action.habit) {
+        setState((current) => {
+          if (current.habits.some((h) => h.id === action.habit.id)) return current;
+          return { ...current, habits: [...current.habits, action.habit] };
+        });
+      } else if (action.type === 'DELETE_HABIT' && action.id) {
+        setState((current) => ({
+          ...current,
+          habits: current.habits.filter((h) => h.id !== action.id),
+        }));
+      }
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, []);
 
   const value = useMemo<DashboardContextValue>(() => ({
