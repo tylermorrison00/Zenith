@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronUp, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target } from 'lucide-react';
-import { ListChecks } from '../lib/icons';
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal } from 'lucide-react';
 import { CardHeading, FolderGlyph, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
@@ -222,8 +221,6 @@ export function OverviewPage() {
   const remainingTimeStr = `${formatTime(totalSeconds - trackSeconds)} left`;
 
   const [addType, setAddType] = useState<'task' | 'note' | null>(null);
-  const [showTasks, setShowTasks] = useState(true);
-  const [showHabits, setShowHabits] = useState(true);
   const [showRituals, setShowRituals] = useState(true);
   const [foldersExpanded, setFoldersExpanded] = useState(false);
   const lastCheckClickTimeRef = useRef<number>(0);
@@ -825,42 +822,6 @@ export function OverviewPage() {
               {folderQuery ? 'No folder matches that search.' : 'No folders yet — create a project to see it here.'}
             </div>
           )}
-          <button className="tasks-expand" onClick={() => setShowTasks((value) => !value)}>
-            <span><ListChecks size={14} /> Tasks</span>
-            <span>{tasks.length} tasks {showTasks ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
-          </button>
-          {showTasks && (tasks.length > 0
-            ? <div className="overview-task-list">
-                {tasks.map((task) => (
-                  <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)} type="button">
-                    <span className="overview-item-dot" />
-                    <span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span>
-                    <span className={`library-toggle ${task.done ? 'is-on' : ''}`} aria-hidden="true">
-                      <span className="library-toggle-thumb" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            : <div className="library-no-results">No tasks yet — add your first one.</div>)}
-
-          <button className="tasks-expand" onClick={() => setShowHabits((value) => !value)}>
-            <span><Target size={14} /> Habits</span>
-            <span>{habits.length} habits {showHabits ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
-          </button>
-          {showHabits && (habits.length > 0
-            ? <div className="overview-task-list">
-                {habits.map((habit) => (
-                  <button className="overview-task-row" key={habit.id} onClick={() => toggleHabit(habit.id)} type="button">
-                    <span className="overview-item-dot" />
-                    <span className={habit.done ? 'task-title is-on-text' : 'task-title'}>{habit.title}</span>
-                    <span className={`library-toggle ${habit.done ? 'is-on' : ''}`} aria-hidden="true">
-                      <span className="library-toggle-thumb" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            : <div className="library-no-results">No habits yet — add one on Habits page.</div>)}
-
           <button className="tasks-expand" onClick={() => setShowRituals((value) => !value)}>
             <span><Flame size={14} /> Rituals</span>
             <span>{rituals.length} rituals {showRituals ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
@@ -1163,7 +1124,7 @@ export function OverviewPage() {
       </Panel>
 
       <div className="overview-stats-row">
-        <button className="overview-stat" onClick={() => setShowTasks((value) => !value)} type="button">
+        <button className="overview-stat" onClick={() => navigate('/tasks')} type="button">
           <div className="overview-stat-head">
             <span>Tasks done</span>
             <span className="overview-stat-arrow"><ArrowUpRight size={11} strokeWidth={2.2} /></span>
