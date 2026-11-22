@@ -6,7 +6,6 @@ import { useDashboard } from '../state/DashboardContext';
 import { getCurrentAccount, getCurrentAccountSync, type Account } from '../lib/auth';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { UpdateModal } from './UpdateModal';
-import { SettingsModal } from './SettingsModal';
 import { nextTheme, themeLogo, type ThemeName } from '../lib/theme';
 import type { Note, Project, Task } from '../data/seed';
 
@@ -16,7 +15,6 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   // Profile comes from auth.ts so it shows the signed-in user in BOTH
   // Firebase mode and local mode (the old readAccount() call only ever saw
   // the local store, which Firebase sign-in never writes). Seeded
@@ -48,7 +46,9 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
     : location.pathname.startsWith('/notes') ? '/notes'
     : location.pathname.startsWith('/focus') ? '/focus'
     : location.pathname.startsWith('/projects') ? '/projects'
-      : location.pathname.startsWith('/review') ? '/review' : '/';
+    : location.pathname.startsWith('/review') ? '/review'
+    : location.pathname.startsWith('/settings') ? '/settings'
+    : '/';
 
   const nav = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -94,7 +94,7 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
               <div className="profile-person"><span className="avatar-large">{profileInitial}</span><div><strong>{profileName}</strong><small>{profileEmail}</small></div></div>
               <button onClick={() => { setProfileOpen(false); onToggleTheme?.(); const next = nextTheme(theme); notify(`${next.charAt(0).toUpperCase()}${next.slice(1)} theme on`); }}><Palette size={14} /> Theme color</button>
               <button onClick={() => { setProfileOpen(false); setUpdateOpen(true); }}><Download size={14} /> Update app</button>
-              <button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}><Settings size={14} /> Settings</button>
+              <button onClick={() => { setProfileOpen(false); navigate('/settings'); }}><Settings size={14} /> Settings</button>
               {onSignOut && <button onClick={() => { setProfileOpen(false); onSignOut(); }}><LogOut size={14} /> Sign out</button>}
             </div>
           )}
@@ -121,7 +121,6 @@ export function Header({ onSignOut, theme = 'amber', onToggleTheme }: { onSignOu
     </nav>
 
     <UpdateModal open={updateOpen} onClose={() => setUpdateOpen(false)} />
-    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

@@ -12,13 +12,24 @@ import { NotesPage } from './pages/Notes';
 import { FocusPage } from './pages/Focus';
 import { ProjectsPage, BrandRefreshPage } from './pages/Projects';
 import { ReviewPage } from './pages/Review';
+import { SettingsPage } from './pages/Settings';
 import { OnboardingPage } from './pages/Onboarding';
 import { hasSession } from './lib/account';
 import { isFirebaseConfigured } from './lib/firebase';
 import { signOut as signOutOfAuth, waitForAuthRestore } from './lib/auth';
 import { applyTheme, nextTheme, readTheme, themeLogo, type ThemeName } from './lib/theme';
 
-function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; theme: ThemeName; onToggleTheme: () => void }) {
+function AppFrame({
+  onSignOut,
+  theme,
+  onToggleTheme,
+  setTheme,
+}: {
+  onSignOut: () => void;
+  theme: ThemeName;
+  onToggleTheme: () => void;
+  setTheme: (theme: ThemeName) => void;
+}) {
   return (
     <div className="app-shell">
       <Header onSignOut={onSignOut} theme={theme} onToggleTheme={onToggleTheme} />
@@ -34,6 +45,7 @@ function AppFrame({ onSignOut, theme, onToggleTheme }: { onSignOut: () => void; 
           <Route path="/projects/:id" element={<BrandRefreshPage />} />
           <Route path="/projects/brand-refresh" element={<BrandRefreshPage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/settings" element={<SettingsPage theme={theme} onSelectTheme={setTheme} />} />
           <Route path="*" element={<OverviewPage />} />
         </Routes>
       </main>
@@ -103,7 +115,7 @@ export function App() {
               <p>Loading your workspace…</p>
             </div>
           ) : authState === 'signed-in' ? (
-            <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} />
+            <AppFrame onSignOut={signOut} theme={theme} onToggleTheme={toggleTheme} setTheme={setTheme} />
           ) : (
             <>
               <OnboardingPage onComplete={() => setAuthState('signed-in')} theme={theme} />
