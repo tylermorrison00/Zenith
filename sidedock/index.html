@@ -209,38 +209,46 @@
   }
 
   /* Auto-hide states */
-  body.hidden #rail {
-    transform: translateX(120%);
-    opacity: 0;
-    pointer-events: none;
-  }
   #arrowTab {
     display: none;
-    width: 24px;
-    height: 64px;
-    background: #121110;
-    border: 1px solid var(--line);
-    border-right: 0;
-    border-radius: 12px 0 0 12px;
+    width: 28px;
+    height: 72px;
+    background: #141312;
+    border: 1px solid var(--accent);
+    border-right: none;
+    border-radius: 14px 0 0 14px;
     color: var(--accent);
-    font-size: 14px;
-    font-weight: 800;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    transition: background 0.2s, transform 0.2s;
+    box-shadow: -4px 0 20px var(--accent-glow), 0 8px 24px rgba(0, 0, 0, 0.7);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    z-index: 999999;
   }
   #arrowTab:hover {
-    background: #1c1a19;
-    transform: translateY(-50%) scale(1.05);
+    background: #1f1d1b;
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: -6px 0 26px var(--accent-glow);
   }
+  body.hidden #arrowTab,
+  body.arrow-only #arrowTab,
   body.hidden.arrow-only #arrowTab {
-    display: grid !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  body.hidden #rail {
+    transform: translateX(120%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  body.arrow-only #rail {
+    display: none !important;
+  }
+  body.arrow-only .dock {
+    display: none !important;
   }
 
   /* Dock Topbar */
@@ -497,7 +505,11 @@
 </style>
 </head>
 <body data-theme="amber">
-<div id="arrowTab">◀</div>
+<div id="arrowTab" title="Show Zenith Dock">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+</div>
 
 <!-- Expanded Tool / Settings Panel -->
 <div class="dock">
@@ -1075,6 +1087,7 @@
 
   window.sideDock.onAutoHideShow(() => {
     document.body.classList.remove('hidden', 'arrow-only');
+    try { window.sideDock.setMouseEvents(false); } catch {}
   });
 
   window.sideDock.onAutoHideHide(() => {

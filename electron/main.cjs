@@ -202,7 +202,13 @@ app.whenReady().then(() => {
     createSideDockWindow();
   }, 1000);
 });
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => {
+  loadSideDockSettings();
+  if (sideDockEnabled && sideDockWin && !sideDockWin.isDestroyed()) {
+    return;
+  }
+  if (process.platform !== 'darwin') app.quit();
+});
 app.on('activate', () => { if (!win) createWindow(); });
 
 // Custom title bar controls (TitleBar.tsx) — a frameless window has no OS buttons.
@@ -212,7 +218,20 @@ ipcMain.handle('window-maximize-toggle', () => {
   if (win.isMaximized()) win.unmaximize(); else win.maximize();
   return win.isMaximized();
 });
-ipcMain.handle('window-close', () => { if (win) win.close(); });
+ipcMain.handle('window-close', () => {
+  loadSideDockSettings();
+  if (win && !win.isDestroyed()) {
+    win.close();
+    win = null;
+  }
+  if (!sideDockEnabled) {
+    if (sideDockWin && !sideDockWin.isDestroyed()) {
+      sideDockWin.close();
+      sideDockWin = null;
+    }
+    app.quit();
+  }
+});
 ipcMain.handle('window-is-maximized', () => (win ? win.isMaximized() : false));
 
 function getThemeIconPath(themeName) {
@@ -641,7 +660,8 @@ function slideSideDockToHidden(next) {
   if (sideDockHidden) {
     try { sideDockWin.webContents.send('sidedock-auto-hide-hide'); } catch {}
     const startX = sideDockWin.getBounds().x;
-    const targetX = area.x + area.width - 28;
+    // Leave 32px of the window on screen for the Arrow tab
+    const targetX = area.x + area.width - 32;
     const steps = 12;
     let i = 0;
     sideDockHideTimeout = setInterval(() => {
@@ -652,14 +672,14 @@ function slideSideDockToHidden(next) {
         if (i >= steps) {
           clearInterval(sideDockHideTimeout);
           sideDockHideTimeout = null;
-          try { sideDockWin.setIgnoreMouseEvents(true, { forward: true }); } catch {}
+          try { sideDockWin.setIgnoreMouseEvents(false); } catch {}
           try { sideDockWin.webContents.send('sidedock-auto-hide-arrow-only'); } catch {}
         }
       } catch {
         clearInterval(sideDockHideTimeout);
         sideDockHideTimeout = null;
       }
-    }, 25);
+    }, 20);
   } else {
     try { sideDockWin.webContents.send('sidedock-auto-hide-show'); } catch {}
     const startX = sideDockWin.getBounds().x;
@@ -679,8 +699,8 @@ function slideSideDockToHidden(next) {
         clearInterval(sideDockHideTimeout);
         sideDockHideTimeout = null;
       }
-    }, 25);
-    try { sideDockWin.setIgnoreMouseEvents(false, { forward: true }); } catch {}
+    }, 20);
+    try { sideDockWin.setIgnoreMouseEvents(false); } catch {}
   }
 }
 
@@ -690,25 +710,35 @@ function startSideDockMousePoll() {
   sideDockMouseTimer = setInterval(() => {
     try {
       if (!sideDockWin || sideDockWin.isDestroyed()) return;
-      if (!sideDockAutoHide || sideDockHidden || sideDockPanelOpen) {
+      if (!sideDockAutoHide || sideDockPanelOpen) {
         sideDockOutsideCount = 0;
         return;
       }
-      if (Date.now() - sideDockLaunchAt < 8000) return;
+      if (Date.now() - sideDockLaunchAt < 5000) return;
       const pt = screen.getCursorScreenPoint();
+      const area = screen.getPrimaryDisplay().workArea;
       const b = sideDockWin.getBounds();
-      const inside = pt.x >= b.x && pt.x <= b.x + b.width && pt.y >= b.y && pt.y <= b.y + b.height;
-      if (!inside) {
-        sideDockOutsideCount++;
-        if (sideDockOutsideCount >= 2) {
-          sideDockOutsideCount = 0;
-          slideSideDockToHidden(true);
+
+      if (sideDockHidden) {
+        // If cursor moves near the right screen edge in arrow zone, slide out!
+        const nearEdge = pt.x >= (area.x + area.width - 36) && pt.y >= b.y && pt.y <= (b.y + b.height);
+        if (nearEdge) {
+          slideSideDockToHidden(false);
         }
       } else {
-        sideDockOutsideCount = 0;
+        const inside = pt.x >= b.x && pt.x <= (b.x + b.width) && pt.y >= b.y && pt.y <= (b.y + b.height);
+        if (!inside) {
+          sideDockOutsideCount++;
+          if (sideDockOutsideCount >= 2) {
+            sideDockOutsideCount = 0;
+            slideSideDockToHidden(true);
+          }
+        } else {
+          sideDockOutsideCount = 0;
+        }
       }
     } catch {}
-  }, 500);
+  }, 250);
 }
 
 // Extra Dim display overlay
@@ -887,7 +917,15 @@ ipcMain.handle('sidedock-launch-tool', (_e, tool) => {
 });
 
 ipcMain.handle('sidedock-window-min', () => sideDockWin && sideDockWin.minimize());
-ipcMain.handle('sidedock-window-close', () => sideDockWin && sideDockWin.close());
+ipcMain.handle('sidedock-window-close', () => {
+  if (sideDockWin && !sideDockWin.isDestroyed()) {
+    sideDockWin.close();
+    sideDockWin = null;
+  }
+  if (!win || win.isDestroyed()) {
+    app.quit();
+  }
+});
 ipcMain.handle('sidedock-open-external', (_e, url) => {
   try { shell.openExternal(String(url)); } catch {}
 });
@@ -1141,6 +1179,9 @@ ipcMain.handle('sidedock-set-enabled', (_e, enabled) => {
     if (sideDockWin && !sideDockWin.isDestroyed()) {
       sideDockWin.close();
       sideDockWin = null;
+    }
+    if (!win || win.isDestroyed()) {
+      app.quit();
     }
   }
   return sideDockEnabled;
