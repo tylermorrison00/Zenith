@@ -640,6 +640,7 @@
     if (!panelOpen) {
       panelOpen = await window.sideDock.setPanel(true);
       document.body.classList.add('panel-open');
+      try { await window.sideDock.setMouseEvents(false); } catch {}
     }
   }
 
@@ -648,6 +649,7 @@
     document.body.classList.remove('panel-open');
     currentTool = null;
     document.querySelectorAll('#railTools .tool').forEach(t => t.classList.remove('active'));
+    try { await window.sideDock.setMouseEvents(true); } catch {}
   }
 
   function showToolView(tool) {
@@ -1105,6 +1107,17 @@
   }
 
   init();
+  const dockEl = document.querySelector('.dock');
+  const railEl = document.getElementById('rail');
+  if (dockEl) {
+    dockEl.addEventListener('mouseenter', () => { window.sideDock.setMouseEvents(false); });
+    dockEl.addEventListener('mouseleave', () => { if (!panelOpen) window.sideDock.setMouseEvents(true); });
+  }
+  if (railEl) {
+    railEl.addEventListener('mouseenter', () => { window.sideDock.setMouseEvents(false); });
+    railEl.addEventListener('mouseleave', () => { if (!panelOpen) window.sideDock.setMouseEvents(true); });
+  }
+  try { window.sideDock.setMouseEvents(true); } catch {}
 </script>
 </body>
 </html>

@@ -580,7 +580,11 @@ function sideDockCardSize(panelOpen) {
 
 function createSideDockWindow() {
   if (sideDockWin && !sideDockWin.isDestroyed()) {
-    sideDockWin.show();
+    try {
+      sideDockWin.show();
+      sideDockWin.setAlwaysOnTop(true, 'screen-saver');
+      sideDockWin.moveTop();
+    } catch {}
     return;
   }
   loadSideDockSettings();
@@ -600,7 +604,7 @@ function createSideDockWindow() {
     minimizable: false,
     maximizable: false,
     alwaysOnTop: true,
-    skipTaskbar: true,
+    skipTaskbar: false,
     title: 'Zenith Side Dock',
     icon: path.join(APP_ROOT, 'build', 'icon.ico'),
     webPreferences: {
@@ -611,6 +615,13 @@ function createSideDockWindow() {
   });
 
   sideDockWin.loadFile(path.join(APP_ROOT, 'sidedock', 'index.html'));
+  sideDockWin.webContents.once('did-finish-load', () => {
+    try {
+      sideDockWin.show();
+      sideDockWin.setAlwaysOnTop(true, 'screen-saver');
+      sideDockWin.moveTop();
+    } catch {}
+  });
   sideDockWin.on('closed', () => {
     sideDockWin = null;
   });
@@ -1120,7 +1131,11 @@ ipcMain.handle('sidedock-set-enabled', (_e, enabled) => {
     if (!sideDockWin || sideDockWin.isDestroyed()) {
       createSideDockWindow();
     } else {
-      sideDockWin.show();
+      try {
+        sideDockWin.show();
+        sideDockWin.setAlwaysOnTop(true, 'screen-saver');
+        sideDockWin.moveTop();
+      } catch {}
     }
   } else {
     if (sideDockWin && !sideDockWin.isDestroyed()) {
