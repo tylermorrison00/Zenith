@@ -732,7 +732,16 @@ export function OverviewPage() {
             <span>{tasks.length} tasks {showTasks ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
           </button>
           {showTasks && (tasks.length > 0
-            ? <div className="overview-task-list">{tasks.map((task) => <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)}><span className={`task-check ${task.done ? 'is-done' : ''}`}>{task.done && <Check size={10} />}</span><span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span></button>)}</div>
+            ? <div className="overview-task-list">
+                {tasks.map((task) => (
+                  <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)} type="button">
+                    <span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span>
+                    <span className={`library-toggle ${task.done ? 'is-on' : ''}`} aria-hidden="true">
+                      <span className="library-toggle-thumb" />
+                    </span>
+                  </button>
+                ))}
+              </div>
             : <div className="library-no-results">No tasks yet — add your first one.</div>)}
 
           <button className="tasks-expand" onClick={() => setShowHabits((value) => !value)}>
@@ -740,7 +749,16 @@ export function OverviewPage() {
             <span>{habits.length} habits {showHabits ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
           </button>
           {showHabits && (habits.length > 0
-            ? <div className="overview-task-list">{habits.map((habit) => <button className="overview-task-row" key={habit.id} onClick={() => toggleHabit(habit.id)}><span className={`task-check ${habit.done ? 'is-done' : ''}`}>{habit.done && <Check size={10} />}</span><span className={habit.done ? 'task-title is-done-text' : 'task-title'}>{habit.title}</span></button>)}</div>
+            ? <div className="overview-task-list">
+                {habits.map((habit) => (
+                  <button className="overview-task-row" key={habit.id} onClick={() => toggleHabit(habit.id)} type="button">
+                    <span className={habit.done ? 'task-title is-on-text' : 'task-title'}>{habit.title}</span>
+                    <span className={`library-toggle ${habit.done ? 'is-on' : ''}`} aria-hidden="true">
+                      <span className="library-toggle-thumb" />
+                    </span>
+                  </button>
+                ))}
+              </div>
             : <div className="library-no-results">No habits yet — add one on Habits page.</div>)}
 
           <button className="tasks-expand" onClick={() => setShowRituals((value) => !value)}>
@@ -748,7 +766,16 @@ export function OverviewPage() {
             <span>{rituals.length} rituals {showRituals ? <ChevronUp size={12} strokeWidth={2} /> : <ChevronDown size={12} strokeWidth={2} />}</span>
           </button>
           {showRituals && (rituals.length > 0
-            ? <div className="overview-task-list">{rituals.map((ritual) => <button className="overview-task-row" key={ritual.id} onClick={() => toggleRitual(ritual.id)}><span className={`task-check ${ritual.on ? 'is-done' : ''}`}>{ritual.on && <Check size={10} />}</span><span className={ritual.on ? 'task-title is-done-text' : 'task-title'}>{ritual.title}</span></button>)}</div>
+            ? <div className="overview-task-list">
+                {rituals.map((ritual) => (
+                  <button className="overview-task-row" key={ritual.id} onClick={() => toggleRitual(ritual.id)} type="button">
+                    <span className={ritual.on ? 'task-title is-on-text' : 'task-title'}>{ritual.title}</span>
+                    <span className={`library-toggle ${ritual.on ? 'is-on' : ''}`} aria-hidden="true">
+                      <span className="library-toggle-thumb" />
+                    </span>
+                  </button>
+                ))}
+              </div>
             : <div className="library-no-results">No rituals yet — add one on Rituals page.</div>)}
         </Panel>
       </aside>
