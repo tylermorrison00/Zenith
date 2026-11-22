@@ -687,27 +687,31 @@ function slideSideDockToHidden(next) {
     }, 16);
   } else {
     try { sideDockWin.webContents.send('sidedock-auto-hide-show'); } catch {}
-    const startX = sideDockWin.getBounds().x;
-    const targetX = s.x;
-    const steps = 14;
-    let i = 0;
-    sideDockHideTimeout = setInterval(() => {
-      i++;
-      try {
-        const progress = i / steps;
-        const ease = 1 - Math.pow(1 - progress, 2);
-        const x = Math.round(startX + (targetX - startX) * ease);
-        sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
-        if (i >= steps) {
+    // Give 100ms for the arrow to tuck into the right screen edge before window slides left
+    setTimeout(() => {
+      if (!sideDockWin || sideDockWin.isDestroyed()) return;
+      const startX = sideDockWin.getBounds().x;
+      const targetX = s.x;
+      const steps = 14;
+      let i = 0;
+      sideDockHideTimeout = setInterval(() => {
+        i++;
+        try {
+          const progress = i / steps;
+          const ease = 1 - Math.pow(1 - progress, 2);
+          const x = Math.round(startX + (targetX - startX) * ease);
+          sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
+          if (i >= steps) {
+            clearInterval(sideDockHideTimeout);
+            sideDockHideTimeout = null;
+          }
+        } catch {
           clearInterval(sideDockHideTimeout);
           sideDockHideTimeout = null;
         }
-      } catch {
-        clearInterval(sideDockHideTimeout);
-        sideDockHideTimeout = null;
-      }
-    }, 16);
-    try { sideDockWin.setIgnoreMouseEvents(false); } catch {}
+      }, 16);
+      try { sideDockWin.setIgnoreMouseEvents(false); } catch {}
+    }, 100);
   }
 }
 

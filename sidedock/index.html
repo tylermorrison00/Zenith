@@ -210,7 +210,7 @@
 
   /* Auto-hide states */
   #arrowTab {
-    display: flex;
+    display: none;
     width: 24px;
     height: 60px;
     background: #141312;
@@ -226,7 +226,7 @@
     opacity: 0;
     pointer-events: none;
     box-shadow: -4px 0 16px var(--accent-glow), 0 4px 15px rgba(0, 0, 0, 0.7);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, background 0.2s, box-shadow 0.2s;
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.12s ease, background 0.2s, box-shadow 0.2s;
     z-index: 999999;
     align-items: center;
     justify-content: center;
@@ -237,20 +237,25 @@
   }
   /* Arrow sirf tab dikhega aur edge ke andar se slide out hoga jab window edge par dock ho jaye */
   body.arrow-only #arrowTab {
+    display: flex !important;
     transform: translateY(-50%) translateX(0);
     opacity: 1;
     pointer-events: auto;
   }
-  body.hidden:not(.arrow-only) #arrowTab {
-    transform: translateY(-50%) translateX(110%);
-    opacity: 0;
-    pointer-events: none;
+  body.arrow-only #arrowTab.tucking {
+    transform: translateY(-50%) translateX(110%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.1s ease !important;
+  }
+  body:not(.arrow-only) #arrowTab {
+    display: none !important;
   }
   body.hidden #rail {
     transform: translateX(120%);
     opacity: 0;
     pointer-events: none;
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
   }
   body.arrow-only #rail {
     display: none !important;
@@ -1080,16 +1085,24 @@
     else cancelHide();
   });
 
-  document.getElementById('arrowTab').addEventListener('click', () => {
+  let isOpening = false;
+  function triggerOpenFromArrow() {
+    if (isOpening) return;
+    isOpening = true;
     cancelHide();
     lastShowAt = Date.now();
-    window.sideDock.showFromArrow();
-  });
-  document.getElementById('arrowTab').addEventListener('mouseenter', () => {
-    cancelHide();
-    lastShowAt = Date.now();
-    window.sideDock.showFromArrow();
-  });
+    const arrow = document.getElementById('arrowTab');
+    if (arrow) arrow.classList.add('tucking');
+    setTimeout(() => {
+      window.sideDock.showFromArrow().finally(() => {
+        isOpening = false;
+        if (arrow) arrow.classList.remove('tucking');
+      });
+    }, 120);
+  }
+
+  document.getElementById('arrowTab').addEventListener('click', triggerOpenFromArrow);
+  document.getElementById('arrowTab').addEventListener('mouseenter', triggerOpenFromArrow);
 
   document.getElementById('saveTool').addEventListener('click', async () => {
     const name = document.getElementById('fName').value.trim();
@@ -1123,11 +1136,13 @@
   window.sideDock.onAutoHideShow(() => {
     cancelHide();
     lastShowAt = Date.now();
-    document.body.classList.remove('arrow-only');
-    void document.getElementById('arrowTab').offsetWidth;
-    requestAnimationFrame(() => {
+    const arrow = document.getElementById('arrowTab');
+    if (arrow) arrow.classList.add('tucking');
+    setTimeout(() => {
+      document.body.classList.remove('arrow-only');
+      if (arrow) arrow.classList.remove('tucking');
       document.body.classList.remove('hidden');
-    });
+    }, 110);
     try { window.sideDock.setMouseEvents(false); } catch {}
   });
 
