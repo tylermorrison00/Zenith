@@ -210,7 +210,7 @@
 
   /* Auto-hide states */
   #arrowTab {
-    display: none;
+    display: flex;
     width: 24px;
     height: 60px;
     background: #141312;
@@ -222,27 +222,35 @@
     position: absolute;
     left: 0;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) translateX(110%);
+    opacity: 0;
+    pointer-events: none;
     box-shadow: -4px 0 16px var(--accent-glow), 0 4px 15px rgba(0, 0, 0, 0.7);
-    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, background 0.2s, box-shadow 0.2s;
     z-index: 999999;
+    align-items: center;
+    justify-content: center;
   }
   #arrowTab:hover {
     background: #1f1d1b;
-    transform: translateY(-50%) scale(1.06);
-    box-shadow: -6px 0 20px var(--accent-glow);
+    box-shadow: -6px 0 22px var(--accent-glow);
   }
-  body.hidden #arrowTab,
-  body.arrow-only #arrowTab,
-  body.hidden.arrow-only #arrowTab {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
+  /* Arrow sirf tab dikhega aur edge ke andar se slide out hoga jab window edge par dock ho jaye */
+  body.arrow-only #arrowTab {
+    transform: translateY(-50%) translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.hidden:not(.arrow-only) #arrowTab {
+    transform: translateY(-50%) translateX(110%);
+    opacity: 0;
+    pointer-events: none;
   }
   body.hidden #rail {
     transform: translateX(120%);
     opacity: 0;
     pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
   }
   body.arrow-only #rail {
     display: none !important;
@@ -1115,7 +1123,11 @@
   window.sideDock.onAutoHideShow(() => {
     cancelHide();
     lastShowAt = Date.now();
-    document.body.classList.remove('hidden', 'arrow-only');
+    document.body.classList.remove('arrow-only');
+    void document.getElementById('arrowTab').offsetWidth;
+    requestAnimationFrame(() => {
+      document.body.classList.remove('hidden');
+    });
     try { window.sideDock.setMouseEvents(false); } catch {}
   });
 

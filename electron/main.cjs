@@ -665,12 +665,14 @@ function slideSideDockToHidden(next) {
     const startX = sideDockWin.getBounds().x;
     // Leave 24px of the window on screen for the sleek tucked-in Arrow tab
     const targetX = area.x + area.width - 24;
-    const steps = 12;
+    const steps = 14;
     let i = 0;
     sideDockHideTimeout = setInterval(() => {
       i++;
       try {
-        const x = Math.round(startX + (targetX - startX) * (i / steps));
+        const progress = i / steps;
+        const ease = 1 - Math.pow(1 - progress, 2);
+        const x = Math.round(startX + (targetX - startX) * ease);
         sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
         if (i >= steps) {
           clearInterval(sideDockHideTimeout);
@@ -682,17 +684,19 @@ function slideSideDockToHidden(next) {
         clearInterval(sideDockHideTimeout);
         sideDockHideTimeout = null;
       }
-    }, 20);
+    }, 16);
   } else {
     try { sideDockWin.webContents.send('sidedock-auto-hide-show'); } catch {}
     const startX = sideDockWin.getBounds().x;
     const targetX = s.x;
-    const steps = 12;
+    const steps = 14;
     let i = 0;
     sideDockHideTimeout = setInterval(() => {
       i++;
       try {
-        const x = Math.round(startX + (targetX - startX) * (i / steps));
+        const progress = i / steps;
+        const ease = 1 - Math.pow(1 - progress, 2);
+        const x = Math.round(startX + (targetX - startX) * ease);
         sideDockWin.setBounds({ x, y: s.y, width: s.width, height: s.height }, false);
         if (i >= steps) {
           clearInterval(sideDockHideTimeout);
@@ -702,7 +706,7 @@ function slideSideDockToHidden(next) {
         clearInterval(sideDockHideTimeout);
         sideDockHideTimeout = null;
       }
-    }, 20);
+    }, 16);
     try { sideDockWin.setIgnoreMouseEvents(false); } catch {}
   }
 }
