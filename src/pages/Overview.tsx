@@ -853,7 +853,7 @@ export function OverviewPage() {
             : <div className="library-no-results">No rituals yet — add one on Rituals page.</div>)}
 
           <div
-            className="library-dnd-card"
+            className={`library-dnd-card ${dndActive ? 'is-active' : ''}`}
             onClick={() => {
               setDndActive((prev) => {
                 const next = !prev;
