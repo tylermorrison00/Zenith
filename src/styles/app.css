@@ -2053,7 +2053,7 @@
   display: flex;
   align-items: flex-end;
   width: 100%;
-  height: 48px;
+  height: 64px;
   gap: 6px;
 }
 .volume-bars-group {
@@ -2065,7 +2065,7 @@
 }
 .volume-bars-divider {
   width: 1px;
-  height: 38px;
+  height: 52px;
   background: rgba(226, 217, 208, 0.08);
   margin: 0;
   align-self: flex-end;
@@ -2076,14 +2076,14 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-  gap: 1.5px;
+  gap: 2px;
   justify-content: flex-start;
 }
 .volume-segment {
   display: block;
   width: 100%;
-  height: 4px;
-  border-radius: 1.5px;
+  height: 6px;
+  border-radius: 2px;
   transition: background .2s ease, box-shadow .2s ease;
 }
 .volume-segment.is-empty {
