@@ -1989,6 +1989,14 @@
   color: var(--amber);
 }
 
+/* Focus Column Layout & Metric Cards */
+.overview-top-grid > .overview-focus-column {
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 100% !important;
+}
 .overview-focus-column .overview-heading-row {
   margin-top: -6px;
   margin-bottom: 10px;
@@ -1997,19 +2005,52 @@
   margin-top: 0;
   line-height: 1;
 }
+.overview-focus-column .overview-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+  flex: 1 !important;
+  align-items: stretch !important;
+}
+.overview-metric {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  min-width: 0;
+  padding: 1px 0 0;
+  color: var(--text);
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform .18s ease;
+}
+.overview-metric:hover {
+  transform: translateY(-1px);
+}
+.overview-metric:hover .volume-segment.is-today {
+  box-shadow: 0 0 10px rgba(var(--amber-rgb), 0.9);
+}
+.overview-metric .metric-header-part {
+  display: flex;
+  flex-direction: column;
+}
 
-/* Volume Equalizer Bars for Metric Cards */
+/* Volume Equalizer Bars for Metric Cards - Pinned to bottom */
 .volume-visualizer {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 10px;
+  margin-top: auto !important;
+  padding-top: 24px;
+  padding-bottom: 4px;
 }
 .volume-bars-row {
   display: flex;
   align-items: flex-end;
   width: 100%;
-  height: 38px;
+  height: 44px;
   gap: 7px;
 }
 .volume-bars-group {
@@ -2021,7 +2062,7 @@
 }
 .volume-bars-divider {
   width: 1px;
-  height: 32px;
+  height: 36px;
   background: rgba(226, 217, 208, 0.08);
   margin: 0 1px;
   align-self: flex-end;
@@ -2037,7 +2078,7 @@
 .volume-segment {
   display: block;
   width: 100%;
-  height: 3px;
+  height: 3.5px;
   border-radius: 1px;
   transition: background .2s ease, box-shadow .2s ease;
 }
@@ -2058,7 +2099,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 7px;
+  margin-top: 8px;
   font-size: 9px;
   color: #7a7670;
 }
@@ -2081,14 +2122,4 @@
   border: 1px solid rgba(var(--amber-rgb), 0.3);
   box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.18);
   border-radius: 999px;
-}
-.overview-metric {
-  cursor: pointer;
-  transition: transform .18s ease;
-}
-.overview-metric:hover {
-  transform: translateY(-1px);
-}
-.overview-metric:hover .volume-segment.is-today {
-  box-shadow: 0 0 10px rgba(var(--amber-rgb), 0.9);
 }

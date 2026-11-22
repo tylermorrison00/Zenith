@@ -158,12 +158,14 @@ function MetricCard({
       onClick={() => navigate(title.includes('Deep') ? '/focus' : '/review')}
       type="button"
     >
-      <div className="metric-label-row">
-        <span>{title}</span>
-      </div>
-      <div className="metric-number">
-        {value}
-        <em>{unit}</em>
+      <div className="metric-header-part">
+        <div className="metric-label-row">
+          <span>{title}</span>
+        </div>
+        <div className="metric-number">
+          {value}
+          <em>{unit}</em>
+        </div>
       </div>
       <VolumeVisualizer lastWeek={lastWeek} thisWeek={thisWeek} delta={delta} />
     </button>
