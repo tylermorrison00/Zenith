@@ -273,8 +273,8 @@ export function OverviewPage() {
       target?: string;
     }> = [];
 
-    // Total for Today's Focus: tasks + habits + rituals + notes + projectFiles
-    const todaysTotal = (tasks?.length || 0) + (habits?.length || 0) + (rituals?.length || 0) + (notes?.length || 0) + (projectFiles?.length || 0);
+    // Total for Today's Focus: tasks + habits + notes + projectFiles (rituals excluded)
+    const todaysTotal = (tasks?.length || 0) + (habits?.length || 0) + (notes?.length || 0) + (projectFiles?.length || 0);
 
     list.push({
       id: 'todays-focus',
@@ -320,15 +320,12 @@ export function OverviewPage() {
         (f: any) => f.project && (f.project.toLowerCase() === pName || f.project.toLowerCase() === pId)
       );
 
-      // Habits / Rituals tied to project (if any)
+      // Habits tied to project (if any)
       const pHabits = (habits || []).filter(
         (h: any) => (h as any).project && ((h as any).project.toLowerCase() === pName || (h as any).project.toLowerCase() === pId)
       );
-      const pRituals = (rituals || []).filter(
-        (r: any) => (r as any).project && ((r as any).project.toLowerCase() === pName || (r as any).project.toLowerCase() === pId)
-      );
 
-      const pTotal = pTaskCount + pNoteCount + pFiles.length + pHabits.length + pRituals.length;
+      const pTotal = pTaskCount + pNoteCount + pFiles.length + pHabits.length;
 
       list.push({
         id: project.id,
