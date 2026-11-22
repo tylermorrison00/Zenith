@@ -1990,6 +1990,9 @@
 }
 
 /* Focus Column Layout & Metric Cards */
+.overview-top-grid {
+  grid-template-columns: minmax(226px, 0.88fr) minmax(440px, 2.25fr) minmax(205px, 0.88fr) !important;
+}
 .overview-top-grid > .overview-focus-column {
   align-self: stretch !important;
   display: flex !important;
@@ -2008,7 +2011,7 @@
 .overview-focus-column .overview-metrics {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 20px !important;
+  gap: 14px !important;
   flex: 1 !important;
   align-items: stretch !important;
 }
@@ -2050,27 +2053,28 @@
   display: flex;
   align-items: flex-end;
   width: 100%;
-  height: 44px;
-  gap: 7px;
+  height: 48px;
+  gap: 6px;
 }
 .volume-bars-group {
   display: flex;
   flex: 1;
-  gap: 3px;
+  gap: 2px;
   height: 100%;
   align-items: flex-end;
 }
 .volume-bars-divider {
   width: 1px;
-  height: 36px;
+  height: 38px;
   background: rgba(226, 217, 208, 0.08);
-  margin: 0 1px;
+  margin: 0;
   align-self: flex-end;
 }
 .volume-column {
   display: flex;
   flex-direction: column-reverse;
   flex: 1;
+  min-width: 0;
   height: 100%;
   gap: 1.5px;
   justify-content: flex-start;
@@ -2078,8 +2082,8 @@
 .volume-segment {
   display: block;
   width: 100%;
-  height: 3.5px;
-  border-radius: 1px;
+  height: 4px;
+  border-radius: 1.5px;
   transition: background .2s ease, box-shadow .2s ease;
 }
 .volume-segment.is-empty {
