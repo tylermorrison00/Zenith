@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronUp, Clock3, Flame, Headphones, Pause, Play, Search, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, MiniBars, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -701,20 +701,8 @@ export function OverviewPage() {
     <div className="overview-top-grid">
       <aside className="overview-sidebar">
         <Panel className="library-panel">
-          <CardHeading
-            title="Library"
-            action={
-              <div className="library-search">
-                <Search size={12} className="library-search-icon" />
-                <input
-                  aria-label="Search folders"
-                  placeholder="Search folders, notes..."
-                  value={folderQuery}
-                  onChange={(event) => setFolderQuery(event.target.value)}
-                />
-              </div>
-            }
-          />
+          <CardHeading title="Library" />
+          <div className="library-search"><span>⌕</span><input aria-label="Search folders" placeholder="Search folders, notes..." value={folderQuery} onChange={(event) => setFolderQuery(event.target.value)} /></div>
           <div className="subsection-head">
             <span>Focus folders</span>
             <button onClick={() => setFoldersExpanded((value) => !value)}>
