@@ -735,6 +735,7 @@ export function OverviewPage() {
             ? <div className="overview-task-list">
                 {tasks.map((task) => (
                   <button className="overview-task-row" key={task.id} onClick={() => toggleTask(task.id)} type="button">
+                    <span className="overview-item-dot" />
                     <span className={task.done ? 'task-title is-done-text' : 'task-title'}>{task.title}</span>
                     <span className={`library-toggle ${task.done ? 'is-on' : ''}`} aria-hidden="true">
                       <span className="library-toggle-thumb" />
@@ -752,6 +753,7 @@ export function OverviewPage() {
             ? <div className="overview-task-list">
                 {habits.map((habit) => (
                   <button className="overview-task-row" key={habit.id} onClick={() => toggleHabit(habit.id)} type="button">
+                    <span className="overview-item-dot" />
                     <span className={habit.done ? 'task-title is-on-text' : 'task-title'}>{habit.title}</span>
                     <span className={`library-toggle ${habit.done ? 'is-on' : ''}`} aria-hidden="true">
                       <span className="library-toggle-thumb" />
@@ -769,6 +771,7 @@ export function OverviewPage() {
             ? <div className="overview-task-list">
                 {rituals.map((ritual) => (
                   <button className="overview-task-row" key={ritual.id} onClick={() => toggleRitual(ritual.id)} type="button">
+                    <span className="overview-item-dot" />
                     <span className={ritual.on ? 'task-title is-on-text' : 'task-title'}>{ritual.title}</span>
                     <span className={`library-toggle ${ritual.on ? 'is-on' : ''}`} aria-hidden="true">
                       <span className="library-toggle-thumb" />
