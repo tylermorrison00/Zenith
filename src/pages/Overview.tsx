@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Check, ChevronDown, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
-import { CardHeading, FolderGlyph, MiniBars, Panel, TinyPill } from '../components/Shared';
+import { CardHeading, FolderGlyph, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
 import { useDashboard } from '../state/DashboardContext';
@@ -64,14 +64,110 @@ function FolderTile({
   );
 }
 
-function MetricCard({ title, value, unit, foot, points, delta }: { title: string; value: string; unit: string; foot?: string; points: number[]; delta?: string }) {
+function VolumeVisualizer({
+  lastWeek,
+  thisWeek,
+  delta,
+}: {
+  lastWeek: number[];
+  thisWeek: number[];
+  delta: string;
+}) {
+  const TOTAL_SEGMENTS = 8;
+
+  return (
+    <div className="volume-visualizer" aria-hidden="true">
+      <div className="volume-bars-row">
+        <div className="volume-bars-group volume-bars-group--last">
+          {lastWeek.map((val, colIdx) => (
+            <div className="volume-column" key={`last-${colIdx}`}>
+              {Array.from({ length: TOTAL_SEGMENTS }, (_, segIdx) => {
+                const isFilled = segIdx < val;
+                return (
+                  <span
+                    key={segIdx}
+                    className={`volume-segment ${isFilled ? 'is-last-week' : 'is-empty'}`}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div className="volume-bars-divider" />
+
+        <div className="volume-bars-group volume-bars-group--this">
+          {thisWeek.map((val, colIdx) => {
+            const isToday = colIdx === thisWeek.length - 1;
+            return (
+              <div
+                className={`volume-column ${isToday ? 'volume-column--today' : ''}`}
+                key={`this-${colIdx}`}
+              >
+                {Array.from({ length: TOTAL_SEGMENTS }, (_, segIdx) => {
+                  const isFilled = segIdx < val;
+                  return (
+                    <span
+                      key={segIdx}
+                      className={`volume-segment ${
+                        isFilled
+                          ? isToday
+                            ? 'is-today'
+                            : 'is-this-week'
+                          : 'is-empty'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="volume-footer">
+        <span className="volume-footer-label">Last week</span>
+        <div className="volume-footer-right">
+          <span className="volume-footer-label">This week</span>
+          <TinyPill tone="amber">{delta}</TinyPill>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  unit,
+  lastWeek,
+  thisWeek,
+  delta,
+}: {
+  title: string;
+  value: string;
+  unit: string;
+  lastWeek: number[];
+  thisWeek: number[];
+  delta: string;
+}) {
   const navigate = useNavigate();
-  return <button className="overview-metric" onClick={() => navigate(title.includes('Deep') ? '/focus' : '/review')}>
-    <div className="metric-label-row"><span>{title}</span></div>
-    <div className="metric-number">{value}<em>{unit}</em></div>
-    <MiniBars values={points} />
-    {(foot || delta) && <div className="metric-footer">{foot && <span>{foot}</span>}{delta && <TinyPill tone="amber">{delta}</TinyPill>}</div>}
-  </button>;
+  return (
+    <button
+      className="overview-metric"
+      onClick={() => navigate(title.includes('Deep') ? '/focus' : '/review')}
+      type="button"
+    >
+      <div className="metric-label-row">
+        <span>{title}</span>
+      </div>
+      <div className="metric-number">
+        {value}
+        <em>{unit}</em>
+      </div>
+      <VolumeVisualizer lastWeek={lastWeek} thisWeek={thisWeek} delta={delta} />
+    </button>
+  );
 }
 
 export function OverviewPage() {
@@ -788,8 +884,22 @@ export function OverviewPage() {
           <h1 className="display-title display-title--italic">Today's focus</h1>
         </div>
         <div className="overview-metrics">
-          <MetricCard title="Deep work today" value="0.0" unit="h" points={[]} />
-          <MetricCard title="Focus score" value="0" unit="/100" points={[]} />
+          <MetricCard
+            title="Deep work today"
+            value="4.2"
+            unit="h"
+            lastWeek={[2, 3, 4, 3, 5, 4, 3]}
+            thisWeek={[5, 7, 6, 6, 7, 6, 5]}
+            delta="+18%"
+          />
+          <MetricCard
+            title="Focus score"
+            value="86"
+            unit="/100"
+            lastWeek={[3, 3, 4, 3, 4, 3, 2]}
+            thisWeek={[6, 7, 7, 8, 8, 8, 7]}
+            delta="+6 pts"
+          />
         </div>
       </section>
 
