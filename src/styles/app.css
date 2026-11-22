@@ -2127,3 +2127,200 @@
   box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.18);
   border-radius: 999px;
 }
+
+/* Overview Stat Cards with Theme Micro-Visualizers */
+.overview-stats-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 14px;
+}
+.overview-stat {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 82px !important;
+  padding: 12px 14px !important;
+  color: inherit;
+  text-align: left;
+  border: 1px solid rgba(226, 217, 208, 0.08) !important;
+  border-radius: 14px !important;
+  background: #141312 !important;
+  cursor: pointer;
+  transition: border-color .18s ease, transform .18s ease, background .18s ease;
+}
+.overview-stat:hover {
+  border-color: rgba(var(--amber-rgb), 0.35) !important;
+  transform: translateY(-1px);
+  background: #171615 !important;
+}
+.overview-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.overview-stat-head > span:first-child {
+  color: #8b8780 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+}
+.overview-stat-arrow {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #7a7670;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all .18s ease;
+}
+.overview-stat:hover .overview-stat-arrow {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.09);
+}
+.overview-stat-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+}
+.overview-stat-num-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  line-height: 1;
+}
+.overview-stat strong {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: 26px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+}
+.overview-stat-sup {
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+  line-height: 1;
+}
+.overview-stat-sup--green {
+  color: #34d399;
+}
+.overview-stat-unit {
+  font-size: 10px;
+  color: #8a857e;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+/* Micro-visualizer 1: Ticks */
+.overview-stat-viz--ticks {
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 16px;
+  padding-bottom: 2px;
+}
+.stat-tick {
+  width: 2px;
+  height: 13px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background .2s ease;
+}
+.stat-tick.is-lit {
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.5);
+}
+
+/* Micro-visualizer 2: Dots */
+.overview-stat-viz--dots {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  height: 16px;
+  padding-bottom: 3px;
+}
+.stat-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+.stat-dot.is-lit {
+  background: var(--amber);
+  box-shadow: 0 0 5px rgba(var(--amber-rgb), 0.6);
+}
+.stat-dot.is-half {
+  background: linear-gradient(90deg, var(--amber) 50%, rgba(255, 255, 255, 0.12) 50%);
+  box-shadow: 0 0 4px rgba(var(--amber-rgb), 0.4);
+}
+
+/* Micro-visualizer 3: Connected Node Line */
+.overview-stat-viz--nodes {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 44px;
+  height: 16px;
+  padding-bottom: 3px;
+}
+.stat-node-track {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 1.5px;
+  background: rgba(var(--amber-rgb), 0.4);
+  z-index: 1;
+}
+.stat-node-ring {
+  position: relative;
+  z-index: 2;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--amber);
+  background: #141312;
+  box-sizing: border-box;
+}
+.stat-node-ring.is-lit {
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.8);
+}
+
+/* Micro-visualizer 4: Scheduled Capsule Track */
+.overview-stat-viz--schedule {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding-bottom: 3px;
+}
+.stat-track-dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+}
+.stat-sched-pill {
+  height: 7px;
+  border-radius: 3.5px;
+}
+.stat-sched-pill--dim {
+  width: 14px;
+  background: rgba(var(--amber-rgb), 0.3);
+  border: 1px solid rgba(var(--amber-rgb), 0.5);
+}
+.stat-sched-pill--lit {
+  width: 16px;
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.6);
+}

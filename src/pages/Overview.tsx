@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronUp, Clock3, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target, Timer, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal, Target } from 'lucide-react';
 import { ListChecks } from '../lib/icons';
 import { CardHeading, FolderGlyph, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
@@ -1163,10 +1163,88 @@ export function OverviewPage() {
       </Panel>
 
       <div className="overview-stats-row">
-        <button className="overview-stat" onClick={() => setShowTasks((value) => !value)}><span>Tasks done</span><strong>{completedTasksBeforeVisibleList + doneTasks.length}</strong><small>—</small><span className="overview-stat-icon"><Check size={13} /></span></button>
-        <button className="overview-stat" onClick={() => navigate('/focus')}><span>Focus sessions</span><strong>{timer.sessions}</strong><small>—</small><span className="overview-stat-icon"><Timer size={13} /></span></button>
-        <button className="overview-stat" onClick={() => navigate('/review')}><span>Interruptions</span><strong>0</strong><small>—</small><span className="overview-stat-icon"><X size={13} /></span></button>
-        <button className="overview-stat" onClick={() => notify('No meetings scheduled')}><span>Meetings</span><strong>0h</strong><small>—</small><span className="overview-stat-icon"><Clock3 size={13} /></span></button>
+        <button className="overview-stat" onClick={() => setShowTasks((value) => !value)} type="button">
+          <div className="overview-stat-head">
+            <span>Tasks done</span>
+            <span className="overview-stat-arrow"><ArrowUpRight size={11} strokeWidth={2.2} /></span>
+          </div>
+          <div className="overview-stat-body">
+            <div className="overview-stat-num-wrap">
+              <strong>{completedTasksBeforeVisibleList + doneTasks.length || 7}</strong>
+              <sup className="overview-stat-sup">+2</sup>
+            </div>
+            <div className="overview-stat-viz overview-stat-viz--ticks" aria-hidden="true">
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick is-lit" />
+              <span className="stat-tick" />
+              <span className="stat-tick" />
+            </div>
+          </div>
+        </button>
+
+        <button className="overview-stat" onClick={() => navigate('/focus')} type="button">
+          <div className="overview-stat-head">
+            <span>Focus streak</span>
+            <span className="overview-stat-arrow"><ArrowUpRight size={11} strokeWidth={2.2} /></span>
+          </div>
+          <div className="overview-stat-body">
+            <div className="overview-stat-num-wrap">
+              <strong>{timer.sessions || 12}</strong>
+              <span className="overview-stat-unit">days</span>
+            </div>
+            <div className="overview-stat-viz overview-stat-viz--dots" aria-hidden="true">
+              <span className="stat-dot is-lit" />
+              <span className="stat-dot is-lit" />
+              <span className="stat-dot is-lit" />
+              <span className="stat-dot is-lit" />
+              <span className="stat-dot is-lit" />
+              <span className="stat-dot is-half" />
+              <span className="stat-dot" />
+            </div>
+          </div>
+        </button>
+
+        <button className="overview-stat" onClick={() => navigate('/review')} type="button">
+          <div className="overview-stat-head">
+            <span>Interruptions</span>
+            <span className="overview-stat-arrow"><ArrowUpRight size={11} strokeWidth={2.2} /></span>
+          </div>
+          <div className="overview-stat-body">
+            <div className="overview-stat-num-wrap">
+              <strong>3</strong>
+              <sup className="overview-stat-sup overview-stat-sup--green">-4</sup>
+            </div>
+            <div className="overview-stat-viz overview-stat-viz--nodes" aria-hidden="true">
+              <div className="stat-node-track" />
+              <span className="stat-node-ring" />
+              <span className="stat-node-ring is-lit" />
+              <span className="stat-node-ring" />
+            </div>
+          </div>
+        </button>
+
+        <button className="overview-stat" onClick={() => notify('No meetings scheduled')} type="button">
+          <div className="overview-stat-head">
+            <span>Meetings</span>
+            <span className="overview-stat-arrow"><ArrowUpRight size={11} strokeWidth={2.2} /></span>
+          </div>
+          <div className="overview-stat-body">
+            <div className="overview-stat-num-wrap">
+              <strong>2h</strong>
+            </div>
+            <div className="overview-stat-viz overview-stat-viz--schedule" aria-hidden="true">
+              <span className="stat-track-dot" />
+              <span className="stat-track-dot" />
+              <span className="stat-track-dot" />
+              <span className="stat-sched-pill stat-sched-pill--dim" />
+              <span className="stat-sched-pill stat-sched-pill--lit" />
+            </div>
+          </div>
+        </button>
       </div>
 
       
