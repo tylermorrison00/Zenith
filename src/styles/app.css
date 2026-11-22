@@ -2329,3 +2329,64 @@
   background: var(--amber);
   box-shadow: 0 0 6px rgba(var(--amber-rgb), 0.6);
 }
+
+/* Library Do Not Disturb Card */
+.library-dnd-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(226, 217, 208, 0.08);
+  cursor: pointer;
+  user-select: none;
+  transition: all .18s ease;
+  box-sizing: border-box;
+}
+.library-dnd-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.library-dnd-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: #7a7670;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  transition: all .2s ease;
+}
+.library-dnd-icon.is-active {
+  color: var(--amber);
+  background: rgba(var(--amber-rgb), 0.12);
+  border-color: rgba(var(--amber-rgb), 0.3);
+  box-shadow: 0 0 10px rgba(var(--amber-rgb), 0.2);
+}
+.library-dnd-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.library-dnd-copy strong {
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.library-dnd-copy small {
+  color: #837f79;
+  font-size: 9.5px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

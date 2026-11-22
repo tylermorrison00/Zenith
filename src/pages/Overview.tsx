@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronUp, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal } from 'lucide-react';
+import { ArrowUpRight, BellOff, Check, ChevronDown, ChevronUp, Flame, Headphones, Pause, Play, SkipBack, SkipForward, SlidersHorizontal } from 'lucide-react';
 import { CardHeading, FolderGlyph, Panel, TinyPill } from '../components/Shared';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { startAmbientSound, stopAmbientSound } from '../lib/audio';
@@ -222,6 +222,18 @@ export function OverviewPage() {
 
   const [addType, setAddType] = useState<'task' | 'note' | null>(null);
   const [showRituals, setShowRituals] = useState(true);
+  const [dndActive, setDndActive] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('zenith-dnd-active');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('zenith-dnd-active', JSON.stringify(dndActive));
+  }, [dndActive]);
   const [foldersExpanded, setFoldersExpanded] = useState(false);
   const lastCheckClickTimeRef = useRef<number>(0);
 
@@ -839,6 +851,40 @@ export function OverviewPage() {
                 ))}
               </div>
             : <div className="library-no-results">No rituals yet — add one on Rituals page.</div>)}
+
+          <div
+            className="library-dnd-card"
+            onClick={() => {
+              setDndActive((prev) => {
+                const next = !prev;
+                notify(next ? 'Do not disturb enabled' : 'Do not disturb disabled');
+                return next;
+              });
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setDndActive((prev) => {
+                  const next = !prev;
+                  notify(next ? 'Do not disturb enabled' : 'Do not disturb disabled');
+                  return next;
+                });
+              }
+            }}
+          >
+            <div className={`library-dnd-icon ${dndActive ? 'is-active' : ''}`}>
+              <BellOff size={15} />
+            </div>
+            <div className="library-dnd-copy">
+              <strong>Do not disturb</strong>
+              <small>{dndActive ? 'Slack and mail muted until 11:00' : 'Notifications are active'}</small>
+            </div>
+            <span className={`library-toggle ${dndActive ? 'is-on' : ''}`} aria-hidden="true">
+              <span className="library-toggle-thumb" />
+            </span>
+          </div>
         </Panel>
       </aside>
 
