@@ -879,7 +879,7 @@ export function OverviewPage() {
             </div>
             <div className="library-dnd-copy">
               <strong>Do not disturb</strong>
-              <small>{dndActive ? 'Slack and mail muted until 11:00' : 'Notifications are active'}</small>
+              <small>{dndActive ? 'Notifications are muted' : 'Notifications are active'}</small>
             </div>
             <span className={`library-toggle ${dndActive ? 'is-on' : ''}`} aria-hidden="true">
               <span className="library-toggle-thumb" />
