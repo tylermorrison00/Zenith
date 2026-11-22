@@ -211,26 +211,26 @@
   /* Auto-hide states */
   #arrowTab {
     display: none;
-    width: 28px;
-    height: 72px;
+    width: 24px;
+    height: 60px;
     background: #141312;
     border: 1px solid var(--accent);
     border-right: none;
-    border-radius: 14px 0 0 14px;
+    border-radius: 10px 0 0 10px;
     color: var(--accent);
     cursor: pointer;
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: -4px 0 20px var(--accent-glow), 0 8px 24px rgba(0, 0, 0, 0.7);
+    box-shadow: -4px 0 16px var(--accent-glow), 0 4px 15px rgba(0, 0, 0, 0.7);
     transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
     z-index: 999999;
   }
   #arrowTab:hover {
     background: #1f1d1b;
-    transform: translateY(-50%) scale(1.08);
-    box-shadow: -6px 0 26px var(--accent-glow);
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: -6px 0 20px var(--accent-glow);
   }
   body.hidden #arrowTab,
   body.arrow-only #arrowTab,
@@ -650,6 +650,7 @@
 
   async function openPanel() {
     if (!panelOpen) {
+      cancelHide();
       panelOpen = await window.sideDock.setPanel(true);
       document.body.classList.add('panel-open');
       try { await window.sideDock.setMouseEvents(false); } catch {}
@@ -662,6 +663,7 @@
     currentTool = null;
     document.querySelectorAll('#railTools .tool').forEach(t => t.classList.remove('active'));
     try { await window.sideDock.setMouseEvents(true); } catch {}
+    scheduleHide();
   }
 
   function showToolView(tool) {
@@ -1035,6 +1037,25 @@
     }
   });
 
+  let hideTimer = null;
+  let lastShowAt = 0;
+
+  function scheduleHide() {
+    if (!autoHide || panelOpen) return;
+    if (Date.now() - lastShowAt < 300) return;
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      window.sideDock.setHidden(true);
+    }, 700);
+  }
+
+  function cancelHide() {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+  }
+
   document.getElementById('autoBtn').addEventListener('click', async () => {
     autoStart = await window.sideDock.setAutostart(!autoStart);
     const b = document.getElementById('autoBtn');
@@ -1047,12 +1068,18 @@
     const b = document.getElementById('autohideBtn');
     b.textContent = autoHide ? 'On' : 'Off';
     b.classList.toggle('on', autoHide);
+    if (autoHide) scheduleHide();
+    else cancelHide();
   });
 
   document.getElementById('arrowTab').addEventListener('click', () => {
+    cancelHide();
+    lastShowAt = Date.now();
     window.sideDock.showFromArrow();
   });
   document.getElementById('arrowTab').addEventListener('mouseenter', () => {
+    cancelHide();
+    lastShowAt = Date.now();
     window.sideDock.showFromArrow();
   });
 
@@ -1086,11 +1113,14 @@
   });
 
   window.sideDock.onAutoHideShow(() => {
+    cancelHide();
+    lastShowAt = Date.now();
     document.body.classList.remove('hidden', 'arrow-only');
     try { window.sideDock.setMouseEvents(false); } catch {}
   });
 
   window.sideDock.onAutoHideHide(() => {
+    cancelHide();
     document.body.classList.add('hidden');
   });
 
@@ -1103,7 +1133,7 @@
     const state = await window.sideDock.getState();
     if (state) {
       autoStart = state.autoStart !== false;
-      autoHide = !!state.autoHide;
+      autoHide = state.autoHide !== false;
       currentTheme = state.theme || 'amber';
       tools = state.tools || [];
       updateThemeUI(currentTheme);
@@ -1117,18 +1147,37 @@
       ahb.classList.toggle('on', autoHide);
     }
     renderRail();
+    if (autoHide && !panelOpen) {
+      setTimeout(scheduleHide, 2500);
+    }
   }
 
   init();
   const dockEl = document.querySelector('.dock');
   const railEl = document.getElementById('rail');
   if (dockEl) {
-    dockEl.addEventListener('mouseenter', () => { window.sideDock.setMouseEvents(false); });
-    dockEl.addEventListener('mouseleave', () => { if (!panelOpen) window.sideDock.setMouseEvents(true); });
+    dockEl.addEventListener('mouseenter', () => {
+      cancelHide();
+      window.sideDock.setMouseEvents(false);
+    });
+    dockEl.addEventListener('mouseleave', () => {
+      if (!panelOpen) {
+        window.sideDock.setMouseEvents(true);
+        scheduleHide();
+      }
+    });
   }
   if (railEl) {
-    railEl.addEventListener('mouseenter', () => { window.sideDock.setMouseEvents(false); });
-    railEl.addEventListener('mouseleave', () => { if (!panelOpen) window.sideDock.setMouseEvents(true); });
+    railEl.addEventListener('mouseenter', () => {
+      cancelHide();
+      window.sideDock.setMouseEvents(false);
+    });
+    railEl.addEventListener('mouseleave', () => {
+      if (!panelOpen) {
+        window.sideDock.setMouseEvents(true);
+        scheduleHide();
+      }
+    });
   }
   try { window.sideDock.setMouseEvents(true); } catch {}
 </script>

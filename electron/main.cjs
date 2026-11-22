@@ -473,7 +473,7 @@ ipcMain.handle('update-install', async () => {
 
 let sideDockWin = null;
 let sideDockPanelOpen = false;
-let sideDockAutoHide = false;
+let sideDockAutoHide = true;
 let sideDockHidden = false;
 let sideDockAutoStart = true;
 let sideDockEnabled = true;
@@ -507,8 +507,11 @@ function loadSideDockSettings() {
     const data = JSON.parse(raw);
     if (typeof data.enabled === 'boolean') sideDockEnabled = data.enabled;
     if (typeof data.autoHide === 'boolean') sideDockAutoHide = data.autoHide;
+    else sideDockAutoHide = true;
     if (typeof data.autoStart === 'boolean') sideDockAutoStart = data.autoStart;
-  } catch {}
+  } catch {
+    sideDockAutoHide = true;
+  }
 }
 
 function saveSideDockSettings() {
@@ -660,8 +663,8 @@ function slideSideDockToHidden(next) {
   if (sideDockHidden) {
     try { sideDockWin.webContents.send('sidedock-auto-hide-hide'); } catch {}
     const startX = sideDockWin.getBounds().x;
-    // Leave 32px of the window on screen for the Arrow tab
-    const targetX = area.x + area.width - 32;
+    // Leave 24px of the window on screen for the sleek tucked-in Arrow tab
+    const targetX = area.x + area.width - 24;
     const steps = 12;
     let i = 0;
     sideDockHideTimeout = setInterval(() => {
@@ -714,14 +717,14 @@ function startSideDockMousePoll() {
         sideDockOutsideCount = 0;
         return;
       }
-      if (Date.now() - sideDockLaunchAt < 5000) return;
+      if (Date.now() - sideDockLaunchAt < 2500) return;
       const pt = screen.getCursorScreenPoint();
       const area = screen.getPrimaryDisplay().workArea;
       const b = sideDockWin.getBounds();
 
       if (sideDockHidden) {
         // If cursor moves near the right screen edge in arrow zone, slide out!
-        const nearEdge = pt.x >= (area.x + area.width - 36) && pt.y >= b.y && pt.y <= (b.y + b.height);
+        const nearEdge = pt.x >= (area.x + area.width - 28) && pt.y >= b.y && pt.y <= (b.y + b.height);
         if (nearEdge) {
           slideSideDockToHidden(false);
         }
