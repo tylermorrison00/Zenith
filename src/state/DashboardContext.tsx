@@ -56,6 +56,9 @@ type DashboardContextValue = DashboardState & {
   endTimer: () => void;
   notify: (message: string) => void;
   toast: string;
+  sidebarVisible: boolean;
+  toggleSidebar: () => void;
+  setSidebarVisible: (visible: boolean) => void;
 };
 
 const stateKey = 'zenith-dashboard-v2';
@@ -496,10 +499,33 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setToast('Session ended · your focus is logged');
   }, []);
 
+  const [sidebarVisible, setSidebarVisibleState] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('zenith-sidebar-visible');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const setSidebarVisible = useCallback((visible: boolean) => {
+    setSidebarVisibleState(visible);
+    localStorage.setItem('zenith-sidebar-visible', JSON.stringify(visible));
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarVisibleState((prev) => {
+      const next = !prev;
+      localStorage.setItem('zenith-sidebar-visible', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const value = useMemo<DashboardContextValue>(() => ({
     ...state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, addRitual, updateRitual, deleteRitual, toggleRitual, toggleWeekRule,
     toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast,
-  }), [state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, addRitual, updateRitual, deleteRitual, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast]);
+    sidebarVisible, toggleSidebar, setSidebarVisible,
+  }), [state, addTask, updateTask, deleteTask, addTaskList, deleteTaskList, addNote, updateNote, deleteNote, addProject, updateProject, deleteProject, addFocusPlanBlock, addProjectFile, toggleTask, addHabit, updateHabit, deleteHabit, toggleHabit, addRitual, updateRitual, deleteRitual, toggleRitual, toggleWeekRule, toggleHeldBlock, applyWeekPlan, startTimer, pauseTimer, resetTimer, endTimer, notify, toast, sidebarVisible, toggleSidebar, setSidebarVisible]);
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
